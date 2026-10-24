@@ -104,6 +104,7 @@ a { color: inherit; }
   pointer-events: none;
 }
 .hero .wrap { position: relative; }
+.logo { display: block; width: 180px; max-width: 60vw; height: auto; margin-bottom: 8px; }
 .hero h1 {
   font-size: clamp(56px, 16vw, 128px);
   text-transform: uppercase;
@@ -142,6 +143,8 @@ a { color: inherit; }
   gap: 12px;
   padding-block: 12px;
 }
+.bar__brand { display: flex; align-items: center; gap: 10px; }
+.bar__logo { width: 40px; height: 40px; object-fit: contain; }
 .bar__name {
   font-family: var(--font-display);
   font-weight: 800;
@@ -325,6 +328,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
 
 <header class="hero" id="inicio">
   <div class="wrap">
+    <img class="logo" src="logo-taller-aguila.png" alt="Logo del Taller Águila" width="180" height="180">
     <p class="eyebrow">Taller de motocicletas</p>
     <h1>Taller <span>Águila</span></h1>
     <p class="hero__sub">Diagnóstico, mantenimiento y reparación de motos con repuestos de calidad, presupuesto antes de empezar y garantía por escrito.</p>
@@ -338,7 +342,7 @@ footer { margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--line);
 
 <nav class="bar" aria-label="Acciones">
   <div class="wrap">
-    <span class="bar__name">Águila</span>
+    <span class="bar__brand"><img class="bar__logo" src="logo-taller-aguila.png" alt="" width="40" height="40"><span class="bar__name">Águila</span></span>
     <div class="bar__actions">
       <a class="pill" href="#cita">Agendar cita</a>
       <a class="pill pill--solid" href="#solicitud">Mi solicitud <span class="badge" id="badge">0</span></a>
