@@ -41,7 +41,7 @@
       padding-bottom: 76px;
     }
 
-    h1, h2, h3 {
+    h1, h2, h3, h4 {
       font-family: var(--serif);
       font-weight: 400;
       color: var(--verde);
@@ -703,6 +703,152 @@
 
     .mensaje.visible { display: block; }
 
+    /* ---------- CALENDARIO ---------- */
+    .calendario {
+      border: 1px solid var(--crema-oscuro);
+      padding: 26px 24px 22px;
+      background: var(--crema-suave);
+    }
+
+    .cal-cabecera {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .cal-mes {
+      font-family: var(--serif);
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--verde);
+      text-transform: capitalize;
+    }
+
+    .cal-nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .cal-nav button {
+      width: 38px;
+      height: 38px;
+      background: var(--blanco);
+      border: 1px solid var(--crema-oscuro);
+      color: var(--verde);
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background 0.3s var(--ease), border-color 0.3s var(--ease);
+    }
+
+    .cal-nav button:hover:not(:disabled) { border-color: var(--dorado); background: var(--crema); }
+    .cal-nav button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cal-dia-nombre {
+      font-size: 0.62rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+      color: var(--gris);
+      padding: 6px 0 8px;
+      font-weight: 500;
+    }
+
+    .cal-celda {
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      font-size: 0.92rem;
+      color: var(--texto);
+      cursor: pointer;
+      transition: background 0.25s var(--ease), color 0.25s var(--ease);
+    }
+
+    .cal-celda.vacia {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .cal-celda.libre:hover { background: var(--crema); color: var(--verde); }
+
+    .cal-celda.hoy { box-shadow: inset 0 0 0 1px var(--verde); font-weight: 500; }
+
+    .cal-celda.ocupado {
+      background: #E4DCCB;
+      color: #A0968A;
+      text-decoration: line-through;
+      cursor: not-allowed;
+    }
+
+    .cal-celda.pendiente {
+      background: repeating-linear-gradient(45deg, #EFE5CC, #EFE5CC 4px, #F8F1DE 4px, #F8F1DE 8px);
+      color: var(--dorado-oscuro);
+      cursor: not-allowed;
+    }
+
+    .cal-celda.pasado {
+      color: #C4BCAD;
+      cursor: not-allowed;
+    }
+
+    .cal-celda.en-rango { background: #E8DFC6; color: var(--verde); }
+
+    .cal-celda.seleccionado {
+      background: var(--verde);
+      color: var(--blanco);
+      font-weight: 500;
+    }
+
+    .cal-leyenda {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 20px;
+      margin-top: 18px;
+      font-size: 0.72rem;
+      color: var(--gris);
+      letter-spacing: 0.5px;
+    }
+
+    .cal-leyenda span { display: inline-flex; align-items: center; gap: 8px; }
+
+    .cal-leyenda i {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 1px solid var(--crema-oscuro);
+    }
+
+    .cal-leyenda .l-libre { background: var(--blanco); }
+    .cal-leyenda .l-ocupado { background: #E4DCCB; }
+    .cal-leyenda .l-pendiente { background: repeating-linear-gradient(45deg, #EFE5CC, #EFE5CC 3px, #F8F1DE 3px, #F8F1DE 6px); }
+    .cal-leyenda .l-seleccion { background: var(--verde); border-color: var(--verde); }
+
+    .cal-resumen {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--crema-oscuro);
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      color: var(--verde);
+      min-height: 1.6em;
+    }
+
+    .cal-aviso {
+      font-family: var(--sans);
+      font-size: 0.85rem;
+      color: var(--gris);
+      font-style: normal;
+    }
+
     /* ---------- CONTACTO ---------- */
     .contacto-grid {
       display: grid;
@@ -801,6 +947,9 @@
       .fauna-item img { height: 300px; }
       .reserva-box { padding: 40px 24px; }
       .fila { grid-template-columns: 1fr; gap: 30px; }
+      .calendario { padding: 20px 14px 18px; }
+      .cal-grid { gap: 2px; }
+      .cal-celda { font-size: 0.82rem; }
       .visor { padding: 60px 14px; }
       .visor-btn { width: 42px; height: 42px; }
       #anterior { left: 6px; }
@@ -1006,7 +1155,7 @@
       <div class="reserva-texto reveal">
         <span class="eyebrow sin-linea">Reservas</span>
         <h2>Haz tu reserva</h2>
-        <p>Elige tus fechas y tu cabaña. Te confirmaremos tu estadía por correo.</p>
+        <p>Elige tu cabaña y tus fechas en el calendario. Te confirmaremos tu estadía por correo.</p>
         <ul class="reserva-lista">
           <li>Confirmación personalizada por correo</li>
           <li>Atención directa del equipo del refugio</li>
@@ -1023,6 +1172,25 @@
               <option value="Cabaña Grande">Cabaña Grande · hasta 8 personas</option>
               <option value="Cabina Pequeña">Cabina Pequeña · 2 personas</option>
             </select>
+          </div>
+
+          <!-- Calendario de disponibilidad -->
+          <div class="calendario" aria-label="Calendario de disponibilidad">
+            <div class="cal-cabecera">
+              <div class="cal-mes" id="cal-mes"></div>
+              <div class="cal-nav">
+                <button type="button" id="cal-anterior" aria-label="Mes anterior">‹</button>
+                <button type="button" id="cal-siguiente" aria-label="Mes siguiente">›</button>
+              </div>
+            </div>
+            <div class="cal-grid" id="cal-grid"></div>
+            <div class="cal-leyenda">
+              <span><i class="l-libre"></i>Disponible</span>
+              <span><i class="l-ocupado"></i>Reservado</span>
+              <span><i class="l-pendiente"></i>Pendiente</span>
+              <span><i class="l-seleccion"></i>Tu estadía</span>
+            </div>
+            <div class="cal-resumen" id="cal-resumen"></div>
           </div>
 
           <div class="fila">
@@ -1117,8 +1285,259 @@
   </div>
 
   <script>
-    // Galería: fotos de la cabaña grande y de la cabina pequeña.
-    // "ancha" y "alta" dan el ritmo tipo revista al mosaico.
+    /* =========================================================
+       DISPONIBILIDAD
+       Edite estas listas para marcar fechas. Formato: "AAAA-MM-DD".
+       rango("inicio", "fin") marca todos los días incluidos.
+       - reservado: fechas ocupadas (no se pueden elegir).
+       - pendiente: fechas en confirmación (no se pueden elegir).
+       Las fechas que no aparecen están disponibles.
+       ========================================================= */
+    function rango(desde, hasta) {
+      var dias = [];
+      var d = fechaDesdeTexto(desde);
+      var fin = fechaDesdeTexto(hasta);
+      while (d <= fin) {
+        dias.push(textoDesdeFecha(d));
+        d.setDate(d.getDate() + 1);
+      }
+      return dias;
+    }
+
+    var disponibilidad = {
+      "Cabaña Grande": {
+        reservado: [].concat(
+          rango("2026-11-14", "2026-11-16"),
+          rango("2026-12-20", "2026-12-27")
+        ),
+        pendiente: rango("2026-12-05", "2026-12-06")
+      },
+      "Cabina Pequeña": {
+        reservado: rango("2026-11-21", "2026-11-23"),
+        pendiente: []
+      }
+    };
+
+    /* =========================================================
+       UTILIDADES DE FECHA (hora local, sin desfases de zona)
+       ========================================================= */
+    function fechaDesdeTexto(texto) {
+      var p = texto.split('-').map(Number);
+      return new Date(p[0], p[1] - 1, p[2]);
+    }
+
+    function textoDesdeFecha(d) {
+      var mes = String(d.getMonth() + 1).padStart(2, '0');
+      var dia = String(d.getDate()).padStart(2, '0');
+      return d.getFullYear() + '-' + mes + '-' + dia;
+    }
+
+    var hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    var hoyTexto = textoDesdeFecha(hoy);
+
+    /* =========================================================
+       ESTADO DEL CALENDARIO
+       ========================================================= */
+    var mesVisible = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    var entradaSel = '';
+    var salidaSel = '';
+
+    var cabanaSelect = document.getElementById('cabana');
+    var entradaInput = document.getElementById('entrada');
+    var salidaInput = document.getElementById('salida');
+    var personasInput = document.getElementById('personas');
+    var calGrid = document.getElementById('cal-grid');
+    var calMes = document.getElementById('cal-mes');
+    var calResumen = document.getElementById('cal-resumen');
+    var calAnterior = document.getElementById('cal-anterior');
+    var calSiguiente = document.getElementById('cal-siguiente');
+
+    function estadoDia(texto) {
+      if (texto < hoyTexto) return 'pasado';
+      var cabana = cabanaSelect.value;
+      if (!cabana || !disponibilidad[cabana]) return 'libre';
+      if (disponibilidad[cabana].reservado.indexOf(texto) !== -1) return 'ocupado';
+      if (disponibilidad[cabana].pendiente.indexOf(texto) !== -1) return 'pendiente';
+      return 'libre';
+    }
+
+    // ¿Hay alguna noche ocupada entre la entrada y la salida?
+    function hayBloqueoEntre(desde, hasta) {
+      var d = fechaDesdeTexto(desde);
+      var fin = fechaDesdeTexto(hasta);
+      while (d < fin) {
+        var t = textoDesdeFecha(d);
+        if (estadoDia(t) !== 'libre') return true;
+        d.setDate(d.getDate() + 1);
+      }
+      return false;
+    }
+
+    function sumarDia(texto) {
+      var d = fechaDesdeTexto(texto);
+      d.setDate(d.getDate() + 1);
+      return textoDesdeFecha(d);
+    }
+
+    function sincronizarInputs() {
+      entradaInput.value = entradaSel;
+      salidaInput.value = salidaSel;
+      salidaInput.min = entradaSel ? sumarDia(entradaSel) : hoyTexto;
+      entradaInput.min = hoyTexto;
+    }
+
+    function renderCalendario() {
+      var cabana = cabanaSelect.value;
+      var anio = mesVisible.getFullYear();
+      var mes = mesVisible.getMonth();
+
+      calMes.textContent = mesVisible.toLocaleDateString('es-CR', { month: 'long', year: 'numeric' });
+
+      // Solo se puede retroceder hasta el mes actual
+      calAnterior.disabled = mesVisible <= new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+
+      calGrid.innerHTML = '';
+
+      ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].forEach(function (nombre) {
+        var celda = document.createElement('div');
+        celda.className = 'cal-dia-nombre';
+        celda.textContent = nombre;
+        calGrid.appendChild(celda);
+      });
+
+      // Lunes = 0
+      var primerDia = (new Date(anio, mes, 1).getDay() + 6) % 7;
+      for (var v = 0; v < primerDia; v++) {
+        var vacia = document.createElement('div');
+        vacia.className = 'cal-celda vacia';
+        calGrid.appendChild(vacia);
+      }
+
+      var diasDelMes = new Date(anio, mes + 1, 0).getDate();
+      for (var dia = 1; dia <= diasDelMes; dia++) {
+        var texto = textoDesdeFecha(new Date(anio, mes, dia));
+        var estado = estadoDia(texto);
+        var boton = document.createElement('button');
+        boton.type = 'button';
+        boton.textContent = dia;
+        boton.className = 'cal-celda ' + estado;
+        if (texto === hoyTexto) boton.classList.add('hoy');
+
+        if (texto === entradaSel || texto === salidaSel) {
+          boton.classList.add('seleccionado');
+        } else if (entradaSel && salidaSel && texto > entradaSel && texto < salidaSel) {
+          boton.classList.add('en-rango');
+        }
+
+        var seleccionable = cabana && estado === 'libre';
+        boton.disabled = !seleccionable;
+        if (seleccionable) {
+          boton.setAttribute('aria-label', texto);
+          boton.addEventListener('click', (function (t) {
+            return function () { seleccionarDia(t); };
+          })(texto));
+        }
+        calGrid.appendChild(boton);
+      }
+
+      // Resumen
+      if (!cabana) {
+        calResumen.textContent = 'Elige una cabaña para ver sus fechas disponibles.';
+      } else if (entradaSel && salidaSel) {
+        var noches = Math.round((fechaDesdeTexto(salidaSel) - fechaDesdeTexto(entradaSel)) / 86400000);
+        calResumen.textContent = noches + (noches === 1 ? ' noche' : ' noches') +
+          ' · del ' + formatoCorto(entradaSel) + ' al ' + formatoCorto(salidaSel);
+      } else if (entradaSel) {
+        calResumen.textContent = 'Entrada: ' + formatoCorto(entradaSel) + '. Ahora elige la fecha de salida.';
+      } else {
+        calResumen.textContent = 'Toca la fecha de entrada.';
+      }
+    }
+
+    function formatoCorto(texto) {
+      return fechaDesdeTexto(texto).toLocaleDateString('es-CR', { day: 'numeric', month: 'short' });
+    }
+
+    function seleccionarDia(texto) {
+      if (!entradaSel || salidaSel || texto <= entradaSel) {
+        // Empieza una nueva selección
+        entradaSel = texto;
+        salidaSel = '';
+      } else if (hayBloqueoEntre(entradaSel, texto)) {
+        // Hay noches ocupadas en medio: esta fecha pasa a ser la nueva entrada
+        entradaSel = texto;
+        salidaSel = '';
+      } else {
+        salidaSel = texto;
+      }
+      sincronizarInputs();
+      renderCalendario();
+    }
+
+    // Cambios manuales en los campos de fecha
+    entradaInput.addEventListener('change', function () {
+      entradaSel = entradaInput.value;
+      if (salidaSel && salidaSel <= entradaSel) salidaSel = '';
+      sincronizarInputs();
+      renderCalendario();
+    });
+
+    salidaInput.addEventListener('change', function () {
+      salidaSel = salidaInput.value;
+      if (entradaSel && salidaSel <= entradaSel) salidaSel = '';
+      sincronizarInputs();
+      renderCalendario();
+    });
+
+    // Cambio de cabaña: limpia la selección y ajusta la capacidad
+    function cambiarCabana() {
+      entradaSel = '';
+      salidaSel = '';
+      var max = cabanaSelect.value === 'Cabina Pequeña' ? 2 : 8;
+      personasInput.max = max;
+      if (cabanaSelect.value && Number(personasInput.value) > max) personasInput.value = max;
+      sincronizarInputs();
+      renderCalendario();
+    }
+
+    cabanaSelect.addEventListener('change', cambiarCabana);
+
+    calAnterior.addEventListener('click', function () {
+      mesVisible = new Date(mesVisible.getFullYear(), mesVisible.getMonth() - 1, 1);
+      renderCalendario();
+    });
+
+    calSiguiente.addEventListener('click', function () {
+      mesVisible = new Date(mesVisible.getFullYear(), mesVisible.getMonth() + 1, 1);
+      renderCalendario();
+    });
+
+    // Los botones "Reservar" de cada cabaña preseleccionan la cabaña
+    document.querySelectorAll('[data-cabana]').forEach(function (boton) {
+      boton.addEventListener('click', function () {
+        cabanaSelect.value = boton.dataset.cabana;
+        cabanaSelect.dispatchEvent(new Event('change'));
+      });
+    });
+
+    // Envío del formulario (de momento solo muestra el mensaje de confirmación)
+    document.getElementById('form-reserva').addEventListener('submit', function (e) {
+      e.preventDefault();
+      document.getElementById('mensaje').classList.add('visible');
+      this.reset();
+      entradaSel = '';
+      salidaSel = '';
+      sincronizarInputs();
+      renderCalendario();
+    });
+
+    renderCalendario();
+    sincronizarInputs();
+
+    /* =========================================================
+       GALERÍA
+       ========================================================= */
     var fotos = [
       { src: "fachada-noche.jpg", alt: "Cabaña grande de noche con luces, vista al valle", clase: "ancha" },
       { src: "fachada-fogon.jpg", alt: "Fachada de la cabaña grande con fogón encendido", clase: "alta" },
@@ -1208,7 +1627,9 @@
       inicioX = null;
     });
 
-    // Cabecera que cambia al bajar
+    /* =========================================================
+       CABECERA Y ANIMACIONES
+       ========================================================= */
     var cabecera = document.getElementById('cabecera');
     function revisarScroll() {
       cabecera.classList.toggle('scrolled', window.scrollY > 60);
@@ -1216,7 +1637,6 @@
     window.addEventListener('scroll', revisarScroll, { passive: true });
     revisarScroll();
 
-    // Aparición suave de los elementos
     var observador = new IntersectionObserver(function (entradas) {
       entradas.forEach(function (entrada) {
         if (entrada.isIntersecting) {
@@ -1227,31 +1647,6 @@
     }, { threshold: 0.12 });
 
     document.querySelectorAll('.reveal').forEach(function (el) { observador.observe(el); });
-
-    // Al tocar "Reservar" en una cabaña, se preselecciona en el formulario
-    document.querySelectorAll('[data-cabana]').forEach(function (boton) {
-      boton.addEventListener('click', function () {
-        document.getElementById('cabana').value = boton.dataset.cabana;
-      });
-    });
-
-    // Evita fechas de salida anteriores a la de entrada
-    var entrada = document.getElementById('entrada');
-    var salida = document.getElementById('salida');
-
-    entrada.addEventListener('change', function () {
-      salida.min = entrada.value;
-      if (salida.value && salida.value <= entrada.value) {
-        salida.value = '';
-      }
-    });
-
-    // Envío del formulario (de momento solo muestra el mensaje de confirmación)
-    document.getElementById('form-reserva').addEventListener('submit', function (e) {
-      e.preventDefault();
-      document.getElementById('mensaje').classList.add('visible');
-      this.reset();
-    });
   </script>
 
 </body>
