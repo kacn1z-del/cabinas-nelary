@@ -22,6 +22,8 @@
       --texto: #1E1E1E;
       --gris: #6B6558;
       --blanco: #FFFFFF;
+      --error: #7A3228;
+      --error-fondo: #F6E9E4;
       --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
       --sans: "Inter", "Segoe UI", Roboto, sans-serif;
       --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -121,6 +123,12 @@
     }
 
     .btn:hover { background: var(--dorado-oscuro); transform: translateY(-1px); }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: wait;
+      transform: none;
+    }
 
     .btn-linea {
       background: transparent;
@@ -703,6 +711,11 @@
 
     .mensaje.visible { display: block; }
 
+    .mensaje.error {
+      background: var(--error-fondo);
+      color: var(--error);
+    }
+
     /* ---------- CALENDARIO ---------- */
     .calendario {
       border: 1px solid var(--crema-oscuro);
@@ -778,7 +791,7 @@
       pointer-events: none;
     }
 
-    .cal-celda.libre:hover { background: var(--crema); color: var(--verde); }
+    .cal-celda.libre:hover:not(:disabled) { background: var(--crema); color: var(--verde); }
 
     .cal-celda.hoy { box-shadow: inset 0 0 0 1px var(--verde); font-weight: 500; }
 
@@ -840,13 +853,6 @@
       font-size: 1.1rem;
       color: var(--verde);
       min-height: 1.6em;
-    }
-
-    .cal-aviso {
-      font-family: var(--sans);
-      font-size: 0.85rem;
-      color: var(--gris);
-      font-style: normal;
     }
 
     /* ---------- CONTACTO ---------- */
@@ -1190,7 +1196,7 @@
               <span><i class="l-pendiente"></i>Pendiente</span>
               <span><i class="l-seleccion"></i>Tu estadía</span>
             </div>
-            <div class="cal-resumen" id="cal-resumen"></div>
+            <div class="cal-resumen" id="cal-resumen" aria-live="polite"></div>
           </div>
 
           <div class="fila">
@@ -1212,27 +1218,27 @@
           <div class="fila">
             <div class="campo">
               <label for="nombre">Nombre completo</label>
-              <input type="text" id="nombre" required>
+              <input type="text" id="nombre" required maxlength="120">
             </div>
             <div class="campo">
               <label for="telefono">Teléfono</label>
-              <input type="tel" id="telefono" required>
+              <input type="tel" id="telefono" required maxlength="30">
             </div>
           </div>
 
           <div class="campo">
             <label for="correo">Correo electrónico</label>
-            <input type="email" id="correo" required>
+            <input type="email" id="correo" required maxlength="120">
           </div>
 
           <div class="campo">
             <label for="notas">Comentarios (opcional)</label>
-            <textarea id="notas"></textarea>
+            <textarea id="notas" maxlength="1000"></textarea>
           </div>
 
-          <button type="submit" class="btn btn-enviar">Enviar solicitud</button>
+          <button type="submit" class="btn btn-enviar" id="boton-enviar">Enviar solicitud</button>
 
-          <div class="mensaje" id="mensaje">
+          <div class="mensaje" id="mensaje" role="status">
             Gracias. Recibimos tu solicitud y te escribiremos pronto para confirmar tu estadía.
           </div>
         </form>
@@ -1284,100 +1290,142 @@
     <div class="visor-contador" id="contador"></div>
   </div>
 
-  <script>
-    /* =========================================================
-       DISPONIBILIDAD
-       Edite estas listas para marcar fechas. Formato: "AAAA-MM-DD".
-       rango("inicio", "fin") marca todos los días incluidos.
-       - reservado: fechas ocupadas (no se pueden elegir).
-       - pendiente: fechas en confirmación (no se pueden elegir).
-       Las fechas que no aparecen están disponibles.
-       ========================================================= */
-    function rango(desde, hasta) {
-      var dias = [];
-      var d = fechaDesdeTexto(desde);
-      var fin = fechaDesdeTexto(hasta);
-      while (d <= fin) {
-        dias.push(textoDesdeFecha(d));
-        d.setDate(d.getDate() + 1);
-      }
-      return dias;
-    }
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    var disponibilidad = {
-      "Cabaña Grande": {
-        reservado: [].concat(
-          rango("2026-11-14", "2026-11-16"),
-          rango("2026-12-20", "2026-12-27")
-        ),
-        pendiente: rango("2026-12-05", "2026-12-06")
-      },
-      "Cabina Pequeña": {
-        reservado: rango("2026-11-21", "2026-11-23"),
-        pendiente: []
-      }
+    /* =========================================================
+       FIREBASE
+       ========================================================= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0ubNo_ojBiATkTB5RNMP_OZkOodmvQnM",
+      authDomain: "cabinas-nelary.firebaseapp.com",
+      projectId: "cabinas-nelary",
+      storageBucket: "cabinas-nelary.firebasestorage.app",
+      messagingSenderId: "946760081226",
+      appId: "1:946760081226:web:466a4d1be01425f272abb3"
     };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const CABANAS = ["Cabaña Grande", "Cabina Pequeña"];
+    const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 2 };
 
     /* =========================================================
        UTILIDADES DE FECHA (hora local, sin desfases de zona)
        ========================================================= */
     function fechaDesdeTexto(texto) {
-      var p = texto.split('-').map(Number);
+      const p = texto.split("-").map(Number);
       return new Date(p[0], p[1] - 1, p[2]);
     }
 
     function textoDesdeFecha(d) {
-      var mes = String(d.getMonth() + 1).padStart(2, '0');
-      var dia = String(d.getDate()).padStart(2, '0');
-      return d.getFullYear() + '-' + mes + '-' + dia;
+      const mes = String(d.getMonth() + 1).padStart(2, "0");
+      const dia = String(d.getDate()).padStart(2, "0");
+      return d.getFullYear() + "-" + mes + "-" + dia;
     }
 
-    var hoy = new Date();
+    function sumarDia(texto) {
+      const d = fechaDesdeTexto(texto);
+      d.setDate(d.getDate() + 1);
+      return textoDesdeFecha(d);
+    }
+
+    function formatoCorto(texto) {
+      return fechaDesdeTexto(texto).toLocaleDateString("es-CR", { day: "numeric", month: "short" });
+    }
+
+    const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
-    var hoyTexto = textoDesdeFecha(hoy);
+    const hoyTexto = textoDesdeFecha(hoy);
 
     /* =========================================================
-       ESTADO DEL CALENDARIO
+       ESTADO
        ========================================================= */
-    var mesVisible = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    var entradaSel = '';
-    var salidaSel = '';
+    // Se llena desde Firestore (colección "bloqueos")
+    let disponibilidad = {};
+    let estadoDisponibilidad = "cargando"; // "cargando" | "ok" | "error"
+    let mesVisible = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    let entradaSel = "";
+    let salidaSel = "";
 
-    var cabanaSelect = document.getElementById('cabana');
-    var entradaInput = document.getElementById('entrada');
-    var salidaInput = document.getElementById('salida');
-    var personasInput = document.getElementById('personas');
-    var calGrid = document.getElementById('cal-grid');
-    var calMes = document.getElementById('cal-mes');
-    var calResumen = document.getElementById('cal-resumen');
-    var calAnterior = document.getElementById('cal-anterior');
-    var calSiguiente = document.getElementById('cal-siguiente');
+    const cabanaSelect = document.getElementById("cabana");
+    const entradaInput = document.getElementById("entrada");
+    const salidaInput = document.getElementById("salida");
+    const personasInput = document.getElementById("personas");
+    const calGrid = document.getElementById("cal-grid");
+    const calMes = document.getElementById("cal-mes");
+    const calResumen = document.getElementById("cal-resumen");
+    const calAnterior = document.getElementById("cal-anterior");
+    const calSiguiente = document.getElementById("cal-siguiente");
+    const form = document.getElementById("form-reserva");
+    const mensaje = document.getElementById("mensaje");
+    const botonEnviar = document.getElementById("boton-enviar");
 
+    /* =========================================================
+       DISPONIBILIDAD DESDE FIRESTORE
+       Cada documento de "bloqueos" es un día:
+       { cabana: "Cabaña Grande", fecha: "2026-12-20", estado: "reservado" | "pendiente" }
+       ========================================================= */
+    async function cargarDisponibilidad() {
+      estadoDisponibilidad = "cargando";
+      renderCalendario();
+
+      try {
+        const snapshot = await getDocs(collection(db, "bloqueos"));
+        const nueva = {};
+        CABANAS.forEach(function (c) {
+          nueva[c] = { reservado: [], pendiente: [] };
+        });
+
+        snapshot.forEach(function (doc) {
+          const b = doc.data();
+          if (!nueva[b.cabana] || typeof b.fecha !== "string") return;
+          if (b.estado === "pendiente") {
+            nueva[b.cabana].pendiente.push(b.fecha);
+          } else {
+            nueva[b.cabana].reservado.push(b.fecha);
+          }
+        });
+
+        disponibilidad = nueva;
+        estadoDisponibilidad = "ok";
+      } catch (error) {
+        console.error("No se pudo cargar la disponibilidad:", error);
+        estadoDisponibilidad = "error";
+      }
+
+      renderCalendario();
+    }
+
+    /* =========================================================
+       LÓGICA DEL CALENDARIO
+       ========================================================= */
     function estadoDia(texto) {
-      if (texto < hoyTexto) return 'pasado';
-      var cabana = cabanaSelect.value;
-      if (!cabana || !disponibilidad[cabana]) return 'libre';
-      if (disponibilidad[cabana].reservado.indexOf(texto) !== -1) return 'ocupado';
-      if (disponibilidad[cabana].pendiente.indexOf(texto) !== -1) return 'pendiente';
-      return 'libre';
+      if (texto < hoyTexto) return "pasado";
+      const cabana = cabanaSelect.value;
+      if (!cabana || !disponibilidad[cabana]) return "libre";
+      if (disponibilidad[cabana].reservado.indexOf(texto) !== -1) return "ocupado";
+      if (disponibilidad[cabana].pendiente.indexOf(texto) !== -1) return "pendiente";
+      return "libre";
     }
 
     // ¿Hay alguna noche ocupada entre la entrada y la salida?
     function hayBloqueoEntre(desde, hasta) {
-      var d = fechaDesdeTexto(desde);
-      var fin = fechaDesdeTexto(hasta);
+      const d = fechaDesdeTexto(desde);
+      const fin = fechaDesdeTexto(hasta);
       while (d < fin) {
-        var t = textoDesdeFecha(d);
-        if (estadoDia(t) !== 'libre') return true;
+        if (estadoDia(textoDesdeFecha(d)) !== "libre") return true;
         d.setDate(d.getDate() + 1);
       }
       return false;
-    }
-
-    function sumarDia(texto) {
-      var d = fechaDesdeTexto(texto);
-      d.setDate(d.getDate() + 1);
-      return textoDesdeFecha(d);
     }
 
     function sincronizarInputs() {
@@ -1388,86 +1436,82 @@
     }
 
     function renderCalendario() {
-      var cabana = cabanaSelect.value;
-      var anio = mesVisible.getFullYear();
-      var mes = mesVisible.getMonth();
+      const cabana = cabanaSelect.value;
+      const anio = mesVisible.getFullYear();
+      const mes = mesVisible.getMonth();
 
-      calMes.textContent = mesVisible.toLocaleDateString('es-CR', { month: 'long', year: 'numeric' });
-
-      // Solo se puede retroceder hasta el mes actual
+      calMes.textContent = mesVisible.toLocaleDateString("es-CR", { month: "long", year: "numeric" });
       calAnterior.disabled = mesVisible <= new Date(hoy.getFullYear(), hoy.getMonth(), 1);
 
-      calGrid.innerHTML = '';
+      calGrid.innerHTML = "";
 
-      ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].forEach(function (nombre) {
-        var celda = document.createElement('div');
-        celda.className = 'cal-dia-nombre';
+      ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].forEach(function (nombre) {
+        const celda = document.createElement("div");
+        celda.className = "cal-dia-nombre";
         celda.textContent = nombre;
         calGrid.appendChild(celda);
       });
 
       // Lunes = 0
-      var primerDia = (new Date(anio, mes, 1).getDay() + 6) % 7;
-      for (var v = 0; v < primerDia; v++) {
-        var vacia = document.createElement('div');
-        vacia.className = 'cal-celda vacia';
+      const primerDia = (new Date(anio, mes, 1).getDay() + 6) % 7;
+      for (let v = 0; v < primerDia; v++) {
+        const vacia = document.createElement("div");
+        vacia.className = "cal-celda vacia";
         calGrid.appendChild(vacia);
       }
 
-      var diasDelMes = new Date(anio, mes + 1, 0).getDate();
-      for (var dia = 1; dia <= diasDelMes; dia++) {
-        var texto = textoDesdeFecha(new Date(anio, mes, dia));
-        var estado = estadoDia(texto);
-        var boton = document.createElement('button');
-        boton.type = 'button';
+      const diasDelMes = new Date(anio, mes + 1, 0).getDate();
+      for (let dia = 1; dia <= diasDelMes; dia++) {
+        const texto = textoDesdeFecha(new Date(anio, mes, dia));
+        const estado = estadoDia(texto);
+        const boton = document.createElement("button");
+        boton.type = "button";
         boton.textContent = dia;
-        boton.className = 'cal-celda ' + estado;
-        if (texto === hoyTexto) boton.classList.add('hoy');
+        boton.className = "cal-celda " + estado;
+        if (texto === hoyTexto) boton.classList.add("hoy");
 
         if (texto === entradaSel || texto === salidaSel) {
-          boton.classList.add('seleccionado');
+          boton.classList.add("seleccionado");
         } else if (entradaSel && salidaSel && texto > entradaSel && texto < salidaSel) {
-          boton.classList.add('en-rango');
+          boton.classList.add("en-rango");
         }
 
-        var seleccionable = cabana && estado === 'libre';
+        // Solo se puede elegir si la disponibilidad ya cargó correctamente
+        const seleccionable = cabana && estadoDisponibilidad === "ok" && estado === "libre";
         boton.disabled = !seleccionable;
         if (seleccionable) {
-          boton.setAttribute('aria-label', texto);
-          boton.addEventListener('click', (function (t) {
-            return function () { seleccionarDia(t); };
-          })(texto));
+          boton.setAttribute("aria-label", texto);
+          boton.addEventListener("click", function () { seleccionarDia(texto); });
         }
         calGrid.appendChild(boton);
       }
 
       // Resumen
       if (!cabana) {
-        calResumen.textContent = 'Elige una cabaña para ver sus fechas disponibles.';
+        calResumen.textContent = "Elige una cabaña para ver sus fechas disponibles.";
+      } else if (estadoDisponibilidad === "cargando") {
+        calResumen.textContent = "Cargando disponibilidad…";
+      } else if (estadoDisponibilidad === "error") {
+        calResumen.textContent = "No pudimos cargar la disponibilidad. Recargue la página o escríbanos.";
       } else if (entradaSel && salidaSel) {
-        var noches = Math.round((fechaDesdeTexto(salidaSel) - fechaDesdeTexto(entradaSel)) / 86400000);
-        calResumen.textContent = noches + (noches === 1 ? ' noche' : ' noches') +
-          ' · del ' + formatoCorto(entradaSel) + ' al ' + formatoCorto(salidaSel);
+        const noches = Math.round((fechaDesdeTexto(salidaSel) - fechaDesdeTexto(entradaSel)) / 86400000);
+        calResumen.textContent = noches + (noches === 1 ? " noche" : " noches") +
+          " · del " + formatoCorto(entradaSel) + " al " + formatoCorto(salidaSel);
       } else if (entradaSel) {
-        calResumen.textContent = 'Entrada: ' + formatoCorto(entradaSel) + '. Ahora elige la fecha de salida.';
+        calResumen.textContent = "Entrada: " + formatoCorto(entradaSel) + ". Ahora elige la fecha de salida.";
       } else {
-        calResumen.textContent = 'Toca la fecha de entrada.';
+        calResumen.textContent = "Toca la fecha de entrada.";
       }
-    }
-
-    function formatoCorto(texto) {
-      return fechaDesdeTexto(texto).toLocaleDateString('es-CR', { day: 'numeric', month: 'short' });
     }
 
     function seleccionarDia(texto) {
       if (!entradaSel || salidaSel || texto <= entradaSel) {
-        // Empieza una nueva selección
         entradaSel = texto;
-        salidaSel = '';
+        salidaSel = "";
       } else if (hayBloqueoEntre(entradaSel, texto)) {
         // Hay noches ocupadas en medio: esta fecha pasa a ser la nueva entrada
         entradaSel = texto;
-        salidaSel = '';
+        salidaSel = "";
       } else {
         salidaSel = texto;
       }
@@ -1475,70 +1519,126 @@
       renderCalendario();
     }
 
-    // Cambios manuales en los campos de fecha
-    entradaInput.addEventListener('change', function () {
+    entradaInput.addEventListener("change", function () {
       entradaSel = entradaInput.value;
-      if (salidaSel && salidaSel <= entradaSel) salidaSel = '';
+      if (salidaSel && salidaSel <= entradaSel) salidaSel = "";
       sincronizarInputs();
       renderCalendario();
     });
 
-    salidaInput.addEventListener('change', function () {
+    salidaInput.addEventListener("change", function () {
       salidaSel = salidaInput.value;
-      if (entradaSel && salidaSel <= entradaSel) salidaSel = '';
+      if (entradaSel && salidaSel <= entradaSel) salidaSel = "";
       sincronizarInputs();
       renderCalendario();
     });
 
-    // Cambio de cabaña: limpia la selección y ajusta la capacidad
-    function cambiarCabana() {
-      entradaSel = '';
-      salidaSel = '';
-      var max = cabanaSelect.value === 'Cabina Pequeña' ? 2 : 8;
+    cabanaSelect.addEventListener("change", function () {
+      entradaSel = "";
+      salidaSel = "";
+      const max = MAX_PERSONAS[cabanaSelect.value] || 8;
       personasInput.max = max;
       if (cabanaSelect.value && Number(personasInput.value) > max) personasInput.value = max;
       sincronizarInputs();
       renderCalendario();
-    }
+    });
 
-    cabanaSelect.addEventListener('change', cambiarCabana);
-
-    calAnterior.addEventListener('click', function () {
+    calAnterior.addEventListener("click", function () {
       mesVisible = new Date(mesVisible.getFullYear(), mesVisible.getMonth() - 1, 1);
       renderCalendario();
     });
 
-    calSiguiente.addEventListener('click', function () {
+    calSiguiente.addEventListener("click", function () {
       mesVisible = new Date(mesVisible.getFullYear(), mesVisible.getMonth() + 1, 1);
       renderCalendario();
     });
 
     // Los botones "Reservar" de cada cabaña preseleccionan la cabaña
-    document.querySelectorAll('[data-cabana]').forEach(function (boton) {
-      boton.addEventListener('click', function () {
+    document.querySelectorAll("[data-cabana]").forEach(function (boton) {
+      boton.addEventListener("click", function () {
         cabanaSelect.value = boton.dataset.cabana;
-        cabanaSelect.dispatchEvent(new Event('change'));
+        cabanaSelect.dispatchEvent(new Event("change"));
       });
     });
 
-    // Envío del formulario (de momento solo muestra el mensaje de confirmación)
-    document.getElementById('form-reserva').addEventListener('submit', function (e) {
+    /* =========================================================
+       ENVÍO DE LA SOLICITUD
+       Se guarda en la colección "solicitudes" de Firestore.
+       ========================================================= */
+    function mostrarMensaje(texto, esError) {
+      mensaje.textContent = texto;
+      mensaje.classList.toggle("error", !!esError);
+      mensaje.classList.add("visible");
+    }
+
+    function limpiarMensaje() {
+      mensaje.classList.remove("visible", "error");
+    }
+
+    form.addEventListener("submit", async function (e) {
       e.preventDefault();
-      document.getElementById('mensaje').classList.add('visible');
-      this.reset();
-      entradaSel = '';
-      salidaSel = '';
-      sincronizarInputs();
-      renderCalendario();
+      limpiarMensaje();
+
+      if (estadoDisponibilidad !== "ok") {
+        mostrarMensaje("No pudimos verificar la disponibilidad. Recargue la página o escríbanos directamente.", true);
+        return;
+      }
+
+      if (!entradaSel || !salidaSel) {
+        mostrarMensaje("Elija la fecha de entrada y la de salida en el calendario.", true);
+        return;
+      }
+
+      // Verifica de nuevo la disponibilidad antes de guardar
+      if (hayBloqueoEntre(entradaSel, salidaSel)) {
+        mostrarMensaje("Algunas de esas noches ya no están disponibles. Elija otras fechas.", true);
+        await cargarDisponibilidad();
+        return;
+      }
+
+      const datos = {
+        cabana: cabanaSelect.value,
+        entrada: entradaSel,
+        salida: salidaSel,
+        personas: Number(personasInput.value),
+        nombre: document.getElementById("nombre").value.trim(),
+        telefono: document.getElementById("telefono").value.trim(),
+        correo: document.getElementById("correo").value.trim(),
+        notas: document.getElementById("notas").value.trim(),
+        estado: "nueva",
+        creadoEn: serverTimestamp()
+      };
+
+      botonEnviar.disabled = true;
+      const textoOriginal = botonEnviar.textContent;
+      botonEnviar.textContent = "Enviando…";
+
+      try {
+        await addDoc(collection(db, "solicitudes"), datos);
+
+        form.reset();
+        entradaSel = "";
+        salidaSel = "";
+        personasInput.max = MAX_PERSONAS[cabanaSelect.value] || 8;
+        sincronizarInputs();
+        renderCalendario();
+        mostrarMensaje("Gracias. Recibimos tu solicitud y te escribiremos pronto para confirmar tu estadía.");
+      } catch (error) {
+        console.error("No se pudo enviar la solicitud:", error);
+        mostrarMensaje("No pudimos enviar tu solicitud. Intente de nuevo en unos minutos.", true);
+      } finally {
+        botonEnviar.disabled = false;
+        botonEnviar.textContent = textoOriginal;
+      }
     });
 
-    renderCalendario();
     sincronizarInputs();
+    cargarDisponibilidad();
 
     /* =========================================================
        GALERÍA
        ========================================================= */
-    var fotos = [
+    const fotos = [
       { src: "fachada-noche.jpg", alt: "Cabaña grande de noche con luces, vista al valle", clase: "ancha" },
       { src: "fachada-fogon.jpg", alt: "Fachada de la cabaña grande con fogón encendido", clase: "alta" },
       { src: "vista-ventana.jpg", alt: "Vista desde la ventana hacia el bosque y la montaña", clase: "alta" },
@@ -1560,69 +1660,69 @@
       { src: "cabina-tina.jpg", alt: "Cabina pequeña: tina de baño junto a la ventana", clase: "" }
     ];
 
-    var grid = document.getElementById('grid-galeria');
-    var visor = document.getElementById('visor');
-    var visorImg = document.getElementById('visor-img');
-    var contador = document.getElementById('contador');
-    var indiceActual = 0;
+    const grid = document.getElementById("grid-galeria");
+    const visor = document.getElementById("visor");
+    const visorImg = document.getElementById("visor-img");
+    const contador = document.getElementById("contador");
+    let indiceActual = 0;
 
     fotos.forEach(function (foto, i) {
-      var boton = document.createElement('button');
-      boton.type = 'button';
+      const boton = document.createElement("button");
+      boton.type = "button";
       if (foto.clase) boton.className = foto.clase;
-      boton.setAttribute('aria-label', 'Ver foto: ' + foto.alt);
+      boton.setAttribute("aria-label", "Ver foto: " + foto.alt);
 
-      var img = document.createElement('img');
+      const img = document.createElement("img");
       img.src = foto.src;
       img.alt = foto.alt;
-      img.loading = 'lazy';
+      img.loading = "lazy";
 
       boton.appendChild(img);
-      boton.addEventListener('click', function () { abrirVisor(i); });
+      boton.addEventListener("click", function () { abrirVisor(i); });
       grid.appendChild(boton);
     });
 
     function mostrarFoto(i) {
       indiceActual = (i + fotos.length) % fotos.length;
-      var foto = fotos[indiceActual];
+      const foto = fotos[indiceActual];
       visorImg.src = foto.src;
       visorImg.alt = foto.alt;
-      contador.textContent = (indiceActual + 1) + ' / ' + fotos.length;
+      contador.textContent = (indiceActual + 1) + " / " + fotos.length;
     }
 
     function abrirVisor(i) {
       mostrarFoto(i);
-      visor.classList.add('abierto');
-      document.body.style.overflow = 'hidden';
+      visor.classList.add("abierto");
+      document.body.style.overflow = "hidden";
     }
 
     function cerrarVisor() {
-      visor.classList.remove('abierto');
-      visorImg.src = '';
-      document.body.style.overflow = '';
+      visor.classList.remove("abierto");
+      visorImg.src = "";
+      document.body.style.overflow = "";
     }
 
-    document.getElementById('cerrar-visor').addEventListener('click', cerrarVisor);
-    document.getElementById('anterior').addEventListener('click', function () { mostrarFoto(indiceActual - 1); });
-    document.getElementById('siguiente').addEventListener('click', function () { mostrarFoto(indiceActual + 1); });
+    document.getElementById("cerrar-visor").addEventListener("click", cerrarVisor);
+    document.getElementById("anterior").addEventListener("click", function () { mostrarFoto(indiceActual - 1); });
+    document.getElementById("siguiente").addEventListener("click", function () { mostrarFoto(indiceActual + 1); });
 
-    visor.addEventListener('click', function (e) {
+    visor.addEventListener("click", function (e) {
       if (e.target === visor) cerrarVisor();
     });
 
-    document.addEventListener('keydown', function (e) {
-      if (!visor.classList.contains('abierto')) return;
-      if (e.key === 'Escape') cerrarVisor();
-      if (e.key === 'ArrowLeft') mostrarFoto(indiceActual - 1);
-      if (e.key === 'ArrowRight') mostrarFoto(indiceActual + 1);
+    document.addEventListener("keydown", function (e) {
+      if (!visor.classList.contains("abierto")) return;
+      if (e.key === "Escape") cerrarVisor();
+      if (e.key === "ArrowLeft") mostrarFoto(indiceActual - 1);
+      if (e.key === "ArrowRight") mostrarFoto(indiceActual + 1);
     });
 
     // Deslizar con el dedo en el celular
-    var inicioX = null;
-    visor.addEventListener('touchstart', function (e) { inicioX = e.touches[0].clientX; }, { passive: true });
-    visor.addEventListener('touchend', function (e) {
+    let inicioX = null;
+    visor.addEventListener("touchstart", function (e) { inicioX = e.touches[0].clientX; }, { passive: true });
+    visor.addEventListener("touchend", function (e) {
       if (inicioX === null) return;
-      var dif = e.changedTouches[0].clientX - inicioX;
+      const dif = e.changedTouches[0].clientX - inicioX;
       if (Math.abs(dif) > 50) mostrarFoto(indiceActual + (dif < 0 ? 1 : -1));
       inicioX = null;
     });
@@ -1630,23 +1730,23 @@
     /* =========================================================
        CABECERA Y ANIMACIONES
        ========================================================= */
-    var cabecera = document.getElementById('cabecera');
+    const cabecera = document.getElementById("cabecera");
     function revisarScroll() {
-      cabecera.classList.toggle('scrolled', window.scrollY > 60);
+      cabecera.classList.toggle("scrolled", window.scrollY > 60);
     }
-    window.addEventListener('scroll', revisarScroll, { passive: true });
+    window.addEventListener("scroll", revisarScroll, { passive: true });
     revisarScroll();
 
-    var observador = new IntersectionObserver(function (entradas) {
+    const observador = new IntersectionObserver(function (entradas) {
       entradas.forEach(function (entrada) {
         if (entrada.isIntersecting) {
-          entrada.target.classList.add('visible');
+          entrada.target.classList.add("visible");
           observador.unobserve(entrada.target);
         }
       });
     }, { threshold: 0.12 });
 
-    document.querySelectorAll('.reveal').forEach(function (el) { observador.observe(el); });
+    document.querySelectorAll(".reveal").forEach(function (el) { observador.observe(el); });
   </script>
 
 </body>
