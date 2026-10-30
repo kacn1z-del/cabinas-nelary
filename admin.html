@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Administración | Refugio NELARY</title>
+  <link rel="icon" type="image/png" href="logo-nelary.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --verde: #22412F;
+      --verde-claro: #3B6A4D;
+      --crema: #F3EBD9;
+      --crema-suave: #F9F4E8;
+      --crema-oscuro: #E0D1B0;
+      --dorado: #B8924A;
+      --dorado-oscuro: #8A6A30;
+      --texto: #1E1E1E;
+      --gris: #6B6558;
+      --blanco: #FFFFFF;
+      --rojo: #7A3228;
+      --rojo-fondo: #F6E9E4;
+      --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+      --sans: "Inter", "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      font-weight: 300;
+      background: var(--crema-suave);
+      color: var(--texto);
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h3 {
+      font-family: var(--serif);
+      font-weight: 500;
+      color: var(--verde);
+      line-height: 1.15;
+    }
+
+    button, input, select { font-family: inherit; }
+
+    /* ---------- CABECERA ---------- */
+    header {
+      background: var(--verde);
+      color: var(--crema);
+      padding: 16px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    header img { height: 36px; width: auto; }
+
+    header .titulo {
+      font-family: var(--serif);
+      font-size: 1.2rem;
+      letter-spacing: 1px;
+    }
+
+    .btn-salir {
+      background: transparent;
+      color: var(--crema);
+      border: 1px solid rgba(243, 235, 217, 0.5);
+      padding: 8px 14px;
+      font-size: 0.7rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .btn-salir[hidden] { display: none; }
+
+    /* ---------- LOGIN ---------- */
+    .login {
+      max-width: 400px;
+      margin: 60px auto;
+      padding: 0 22px;
+    }
+
+    .login h1 { font-size: 2rem; margin-bottom: 8px; }
+    .login p.ayuda { color: var(--gris); margin-bottom: 28px; font-size: 0.92rem; }
+
+    form { display: grid; gap: 22px; }
+
+    label {
+      display: block;
+      font-size: 0.66rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--verde-claro);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 0;
+      border: none;
+      border-bottom: 1px solid var(--crema-oscuro);
+      background: transparent;
+      font-size: 1rem;
+      color: var(--texto);
+      border-radius: 0;
+    }
+
+    input:focus, select:focus { outline: none; border-bottom-color: var(--dorado); }
+
+    .btn {
+      background: var(--verde);
+      color: var(--blanco);
+      border: none;
+      padding: 16px;
+      font-size: 0.74rem;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn:hover:not(:disabled) { background: var(--verde-claro); }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+
+    .error-texto {
+      color: var(--rojo);
+      font-size: 0.9rem;
+      min-height: 1.2em;
+    }
+
+    /* ---------- PANEL ---------- */
+    .panel {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 28px 22px 60px;
+    }
+
+    .barra {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
+    }
+
+    .barra h1 { font-size: 1.9rem; }
+
+    .barra select {
+      width: auto;
+      min-width: 180px;
+      padding: 10px 26px 10px 0;
+      border-bottom: 1px solid var(--dorado);
+      cursor: pointer;
+    }
+
+    .tarjeta {
+      background: var(--blanco);
+      border: 1px solid var(--crema-oscuro);
+      padding: 22px 24px;
+      margin-bottom: 16px;
+    }
+
+    .t-cab {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cab {
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--dorado-oscuro);
+    }
+
+    .estado {
+      font-size: 0.66rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border: 1px solid currentColor;
+    }
+
+    .estado.nueva { color: var(--dorado-oscuro); background: #F8F1DE; }
+    .estado.confirmada { color: var(--verde); background: #E4EDE6; }
+    .estado.rechazada, .estado.cancelada { color: var(--rojo); background: var(--rojo-fondo); }
+
+    .tarjeta h3 { font-size: 1.5rem; margin-bottom: 6px; }
+
+    .fechas { color: var(--verde); font-size: 0.95rem; margin-bottom: 6px; }
+
+    .contacto { font-size: 0.9rem; color: var(--gris); margin-bottom: 6px; word-break: break-word; }
+    .contacto a { color: var(--verde-claro); }
+
+    .notas {
+      font-size: 0.9rem;
+      color: var(--gris);
+      font-style: italic;
+      margin-top: 8px;
+      padding-left: 12px;
+      border-left: 2px solid var(--crema-oscuro);
+    }
+
+    .acciones {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .acciones button {
+      padding: 12px 18px;
+      font-size: 0.7rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid var(--verde);
+      background: var(--verde);
+      color: var(--blanco);
+    }
+
+    .acciones button.sec {
+      background: transparent;
+      color: var(--rojo);
+      border-color: var(--rojo);
+    }
+
+    .acciones button:disabled { opacity: 0.5; cursor: wait; }
+
+    .vacio {
+      text-align: center;
+      color: var(--gris);
+      padding: 40px 0;
+      font-family: var(--serif);
+      font-size: 1.2rem;
+      font-style: italic;
+    }
+
+    .vacio.error { color: var(--rojo); }
+
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <img src="logo-nelary.png" alt="NELARY">
+      <span class="titulo">Administración</span>
+    </div>
+    <button type="button" class="btn-salir" id="btn-salir" hidden>Cerrar sesión</button>
+  </header>
+
+  <!-- LOGIN -->
+  <section class="login" id="pantalla-login" hidden>
+    <h1>Ingreso</h1>
+    <p class="ayuda">Solo para la administración del refugio.</p>
+    <form id="form-login">
+      <div>
+        <label for="correo">Correo</label>
+        <input type="email" id="correo" required autocomplete="username">
+      </div>
+      <div>
+        <label for="clave">Contraseña</label>
+        <input type="password" id="clave" required autocomplete="current-password">
+      </div>
+      <p class="error-texto" id="error-login"></p>
+      <button type="submit" class="btn" id="boton-login">Entrar</button>
+    </form>
+  </section>
+
+  <!-- PANEL -->
+  <main class="panel" id="pantalla-panel" hidden>
+    <div class="barra">
+      <h1>Solicitudes</h1>
+      <select id="filtro" aria-label="Filtrar por estado">
+        <option value="nueva">Nuevas</option>
+        <option value="confirmada">Confirmadas</option>
+        <option value="rechazada">Rechazadas</option>
+        <option value="cancelada">Canceladas</option>
+        <option value="todas">Todas</option>
+      </select>
+    </div>
+    <div id="lista"></div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      getDocs,
+      query,
+      where,
+      orderBy,
+      updateDoc,
+      writeBatch,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    /* =========================================================
+       FIREBASE
+       ========================================================= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0ubNo_ojBiATkTB5RNMP_OZkOodmvQnM",
+      authDomain: "cabinas-nelary.firebaseapp.com",
+      projectId: "cabinas-nelary",
+      storageBucket: "cabinas-nelary.firebasestorage.app",
+      messagingSenderId: "946760081226",
+      appId: "1:946760081226:web:466a4d1be01425f272abb3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    /* =========================================================
+       ELEMENTOS
+       ========================================================= */
+    const pantallaLogin = document.getElementById("pantalla-login");
+    const pantallaPanel = document.getElementById("pantalla-panel");
+    const btnSalir = document.getElementById("btn-salir");
+    const formLogin = document.getElementById("form-login");
+    const botonLogin = document.getElementById("boton-login");
+    const errorLogin = document.getElementById("error-login");
+    const filtro = document.getElementById("filtro");
+    const lista = document.getElementById("lista");
+
+    let solicitudes = [];
+
+    /* =========================================================
+       UTILIDADES
+       ========================================================= */
+    function esc(texto) {
+      return String(texto ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function fechaDesdeTexto(texto) {
+      const p = texto.split("-").map(Number);
+      return new Date(p[0], p[1] - 1, p[2]);
+    }
+
+    function textoDesdeFecha(d) {
+      const mes = String(d.getMonth() + 1).padStart(2, "0");
+      const dia = String(d.getDate()).padStart(2, "0");
+      return d.getFullYear() + "-" + mes + "-" + dia;
+    }
+
+    // Noches de la estadía: desde la entrada hasta el día anterior a la salida
+    function listaNoches(entrada, salida) {
+      const noches = [];
+      const d = fechaDesdeTexto(entrada);
+      const fin = fechaDesdeTexto(salida);
+      while (d < fin) {
+        noches.push(textoDesdeFecha(d));
+        d.setDate(d.getDate() + 1);
+      }
+      return noches;
+    }
+
+    function formatoLargo(texto) {
+      return fechaDesdeTexto(texto).toLocaleDateString("es-CR", { day: "numeric", month: "short", year: "numeric" });
+    }
+
+    function soloDigitos(texto) {
+      return String(texto || "").replace(/\D/g, "");
+    }
+
+    const etiquetas = {
+      nueva: "Nueva",
+      confirmada: "Confirmada",
+      rechazada: "Rechazada",
+      cancelada: "Cancelada"
+    };
+
+    /* =========================================================
+       LOGIN
+       ========================================================= */
+    formLogin.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      errorLogin.textContent = "";
+      botonLogin.disabled = true;
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          document.getElementById("correo").value.trim(),
+          document.getElementById("clave").value
+        );
+      } catch (error) {
+        console.error(error);
+        errorLogin.textContent = "Correo o contraseña incorrectos.";
+      } finally {
+        botonLogin.disabled = false;
+      }
+    });
+
+    btnSalir.addEventListener("click", function () {
+      signOut(auth);
+    });
+
+    onAuthStateChanged(auth, function (usuario) {
+      if (usuario) {
+        pantallaLogin.hidden = true;
+        pantallaPanel.hidden = false;
+        btnSalir.hidden = false;
+        cargarSolicitudes();
+      } else {
+        pantallaPanel.hidden = true;
+        btnSalir.hidden = true;
+        pantallaLogin.hidden = false;
+        solicitudes = [];
+      }
+    });
+
+    /* =========================================================
+       CARGAR Y MOSTRAR SOLICITUDES
+       ========================================================= */
+    async function cargarSolicitudes() {
+      lista.innerHTML = '<p class="vacio">Cargando…</p>';
+      try {
+        const snapshot = await getDocs(query(collection(db, "solicitudes"), orderBy("creadoEn", "desc")));
+        solicitudes = snapshot.docs.map(function (d) {
+          return Object.assign({ id: d.id }, d.data());
+        });
+        render();
+      } catch (error) {
+        console.error(error);
+        lista.innerHTML = '<p class="vacio error">No pudimos cargar las solicitudes. Revise que su cuenta esté autorizada.</p>';
+      }
+    }
+
+    function botonesDe(s) {
+      if (s.estado === "nueva") {
+        return '<button type="button" data-accion="confirmar" data-id="' + esc(s.id) + '">Confirmar</button>' +
+               '<button type="button" class="sec" data-accion="rechazar" data-id="' + esc(s.id) + '">Rechazar</button>';
+      }
+      if (s.estado === "confirmada") {
+        return '<button type="button" class="sec" data-accion="cancelar" data-id="' + esc(s.id) + '">Cancelar reserva</button>';
+      }
+      return "";
+    }
+
+    function tarjetaDe(s) {
+      const noches = listaNoches(s.entrada, s.salida);
+      const tel = soloDigitos(s.telefono);
+      const numeroWa = tel.length === 8 ? "506" + tel : tel;
+      const wa = tel ? '<a href="https://wa.me/' + esc(numeroWa) + '" target="_blank" rel="noopener">WhatsApp</a>' : "";
+      const notas = s.notas ? '<p class="notas">' + esc(s.notas) + "</p>" : "";
+
+      return '<article class="tarjeta">' +
+        '<div class="t-cab">' +
+          '<span class="cab">' + esc(s.cabana) + "</span>" +
+          '<span class="estado ' + esc(s.estado) + '">' + esc(etiquetas[s.estado] || s.estado) + "</span>" +
+        "</div>" +
+        "<h3>" + esc(s.nombre) + "</h3>" +
+        '<p class="fechas">' + formatoLargo(s.entrada) + " → " + formatoLargo(s.salida) +
+          " · " + noches.length + (noches.length === 1 ? " noche" : " noches") +
+          " · " + esc(s.personas) + " personas</p>" +
+        '<p class="contacto">' +
+          '<a href="tel:' + esc(s.telefono) + '">' + esc(s.telefono) + "</a> · " +
+          '<a href="mailto:' + esc(s.correo) + '">' + esc(s.correo) + "</a>" +
+          (wa ? " · " + wa : "") +
+        "</p>" +
+        notas +
+        '<div class="acciones">' + botonesDe(s) + "</div>" +
+      "</article>";
+    }
+
+    function render() {
+      const estado = filtro.value;
+      const visibles = solicitudes.filter(function (s) {
+        return estado === "todas" || s.estado === estado;
+      });
+
+      if (visibles.length === 0) {
+        lista.innerHTML = '<p class="vacio">No hay solicitudes en este estado.</p>';
+        return;
+      }
+
+      lista.innerHTML = visibles.map(tarjetaDe).join("");
+    }
+
+    filtro.addEventListener("change", render);
+
+    /* =========================================================
+       ACCIONES
+       ========================================================= */
+    lista.addEventListener("click", async function (e) {
+      const boton = e.target.closest("button[data-accion]");
+      if (!boton) return;
+
+      const s = solicitudes.find(function (x) { return x.id === boton.dataset.id; });
+      if (!s) return;
+
+      const accion = boton.dataset.accion;
+      boton.disabled = true;
+      try {
+        if (accion === "confirmar") await confirmar(s);
+        if (accion === "rechazar") await rechazar(s);
+        if (accion === "cancelar") await cancelar(s);
+        await cargarSolicitudes();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo completar la acción. Intente de nuevo.");
+        boton.disabled = false;
+      }
+    });
+
+    async function confirmar(s) {
+      if (!confirm("¿Confirmar la reserva de " + s.nombre + "?")) return;
+
+      const noches = listaNoches(s.entrada, s.salida);
+
+      // Evita confirmar encima de otra reserva
+      const bloqueos = await getDocs(collection(db, "bloqueos"));
+      const choque = bloqueos.docs.some(function (d) {
+        const b = d.data();
+        return b.cabana === s.cabana && noches.indexOf(b.fecha) !== -1;
+      });
+
+      if (choque) {
+        alert("Alguna de esas noches ya está bloqueada para esta cabaña. Revise el calendario antes de confirmar.");
+        throw new Error("Conflicto de fechas");
+      }
+
+      const batch = writeBatch(db);
+      noches.forEach(function (fecha) {
+        batch.set(doc(collection(db, "bloqueos")), {
+          cabana: s.cabana,
+          fecha: fecha,
+          estado: "reservado",
+          solicitudId: s.id,
+          creadoEn: serverTimestamp()
+        });
+      });
+      batch.update(doc(db, "solicitudes", s.id), { estado: "confirmada" });
+      await batch.commit();
+    }
+
+    async function rechazar(s) {
+      if (!confirm("¿Rechazar la solicitud de " + s.nombre + "?")) return;
+      await updateDoc(doc(db, "solicitudes", s.id), { estado: "rechazada" });
+    }
+
+    async function cancelar(s) {
+      if (!confirm("¿Cancelar la reserva de " + s.nombre + "? Las noches quedarán disponibles.")) return;
+
+      const bloqueados = await getDocs(query(collection(db, "bloqueos"), where("solicitudId", "==", s.id)));
+      const batch = writeBatch(db);
+      bloqueados.docs.forEach(function (d) {
+        batch.delete(d.ref);
+      });
+      batch.update(doc(db, "solicitudes", s.id), { estado: "cancelada" });
+      await batch.commit();
+    }
+  </script>
+
+</body>
+</html>
