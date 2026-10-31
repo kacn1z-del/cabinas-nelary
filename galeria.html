@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Galería | Refugio NELARY</title>
+  <link rel="icon" type="image/png" href="logo-nelary.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --verde: #22412F;
+      --verde-claro: #3B6A4D;
+      --crema: #F3EBD9;
+      --crema-suave: #F9F4E8;
+      --crema-oscuro: #E0D1B0;
+      --dorado: #B8924A;
+      --dorado-oscuro: #8A6A30;
+      --texto: #1E1E1E;
+      --gris: #6B6558;
+      --blanco: #FFFFFF;
+      --rojo: #7A3228;
+      --rojo-fondo: #F6E9E4;
+      --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+      --sans: "Inter", "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      font-weight: 300;
+      background: var(--crema-suave);
+      color: var(--texto);
+      line-height: 1.55;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2 {
+      font-family: var(--serif);
+      font-weight: 500;
+      color: var(--verde);
+      line-height: 1.15;
+    }
+
+    button, input, select { font-family: inherit; }
+
+    [hidden] { display: none !important; }
+
+    header {
+      background: var(--verde);
+      color: var(--crema);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    header img { height: 32px; width: auto; }
+
+    .titulo {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+    }
+
+    .acciones-header { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn-header {
+      background: transparent;
+      color: var(--crema);
+      border: 1px solid rgba(243, 235, 217, 0.5);
+      padding: 7px 12px;
+      font-size: 0.66rem;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .contenedor {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    .login { margin-top: 40px; }
+    .login h1 { font-size: 1.9rem; margin-bottom: 18px; }
+
+    form { display: grid; gap: 18px; }
+
+    .grupo {
+      background: var(--blanco);
+      border: 1px solid var(--crema-oscuro);
+      padding: 20px;
+    }
+
+    .grupo h2 {
+      font-size: 1.35rem;
+      margin-bottom: 14px;
+    }
+
+    .fila {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.64rem;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--verde-claro);
+      margin-bottom: 2px;
+      font-weight: 500;
+    }
+
+    input[type="text"], input[type="email"], input[type="password"], input[type="file"], select {
+      width: 100%;
+      padding: 10px 0;
+      border: none;
+      border-bottom: 1px solid var(--crema-oscuro);
+      background: transparent;
+      font-size: 1rem;
+      color: var(--texto);
+      border-radius: 0;
+      margin-bottom: 14px;
+    }
+
+    input:focus, select:focus { outline: none; border-bottom-color: var(--dorado); }
+
+    .btn {
+      background: var(--verde);
+      color: var(--blanco);
+      border: none;
+      padding: 16px;
+      font-size: 0.74rem;
+      letter-spacing: 2.2px;
+      text-transform: uppercase;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn:hover:not(:disabled) { background: var(--verde-claro); }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+
+    .btn-chico {
+      background: transparent;
+      color: var(--verde);
+      border: 1px solid var(--crema-oscuro);
+      padding: 8px 10px;
+      font-size: 0.66rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .btn-chico:hover:not(:disabled) { border-color: var(--dorado); }
+    .btn-chico:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-chico.peligro { color: var(--rojo); }
+
+    .error-texto { color: var(--rojo); font-size: 0.9rem; min-height: 1.2em; }
+
+    .ayuda {
+      font-size: 0.85rem;
+      color: var(--gris);
+      margin-bottom: 14px;
+    }
+
+    .progreso {
+      font-size: 0.9rem;
+      color: var(--verde-claro);
+      min-height: 1.2em;
+      margin-bottom: 10px;
+    }
+
+    .lista {
+      display: grid;
+      gap: 14px;
+    }
+
+    .foto-card {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 16px;
+      border: 1px solid var(--crema-oscuro);
+      padding: 12px;
+      align-items: start;
+    }
+
+    .foto-card img {
+      width: 120px;
+      height: 90px;
+      object-fit: cover;
+      display: block;
+      background: var(--crema-oscuro);
+    }
+
+    .foto-campos { display: grid; gap: 6px; }
+
+    .foto-campos input, .foto-campos select {
+      margin-bottom: 4px;
+      font-size: 0.92rem;
+    }
+
+    .foto-acciones {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .mensaje {
+      padding: 14px 16px;
+      background: var(--crema);
+      color: var(--verde);
+      font-family: var(--serif);
+      font-size: 1.05rem;
+      font-style: italic;
+    }
+
+    .mensaje.error { background: var(--rojo-fondo); color: var(--rojo); }
+
+    @media (max-width: 640px) {
+      .fila { grid-template-columns: 1fr; }
+      .foto-card { grid-template-columns: 90px 1fr; }
+      .foto-card img { width: 90px; height: 70px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <img src="logo-nelary.png" alt="NELARY">
+      <span class="titulo">Galería</span>
+    </div>
+    <div class="acciones-header">
+      <a href="sitio.html" class="btn-header" id="btn-textos" hidden>Textos</a>
+      <a href="admin.html" class="btn-header" id="btn-solicitudes" hidden>Solicitudes</a>
+      <button type="button" class="btn-header" id="btn-salir" hidden>Salir</button>
+    </div>
+  </header>
+
+  <!-- LOGIN -->
+  <section class="contenedor login" id="pantalla-login" hidden>
+    <h1>Ingreso</h1>
+    <form id="form-login">
+      <div>
+        <label for="correo-login">Correo</label>
+        <input type="email" id="correo-login" required autocomplete="username">
+      </div>
+      <div>
+        <label for="clave-login">Contraseña</label>
+        <input type="password" id="clave-login" required autocomplete="current-password">
+      </div>
+      <p class="error-texto" id="error-login"></p>
+      <button type="submit" class="btn" id="boton-login">Entrar</button>
+    </form>
+  </section>
+
+  <!-- EDITOR -->
+  <main class="contenedor" id="pantalla-editor" hidden>
+
+    <section class="grupo">
+      <h2>Subir fotos</h2>
+      <p class="ayuda">Puede elegir varias a la vez. Las fotos se suben a Cloudinary y aparecen en la página principal en el orden de la lista de abajo.</p>
+      <form id="form-subir">
+        <div>
+          <label for="archivos">Fotos</label>
+          <input type="file" id="archivos" accept="image/*" multiple required>
+        </div>
+        <div class="fila">
+          <div>
+            <label for="clase-nueva">Tamaño en la galería</label>
+            <select id="clase-nueva">
+              <option value="">Normal</option>
+              <option value="ancha">Ancha (2 columnas)</option>
+              <option value="alta">Alta (2 filas)</option>
+            </select>
+          </div>
+          <div>
+            <label for="descripcion-nueva">Descripción (texto alternativo)</label>
+            <input type="text" id="descripcion-nueva" maxlength="200" value="Fotografía del refugio">
+          </div>
+        </div>
+        <p class="progreso" id="progreso" role="status"></p>
+        <button type="submit" class="btn" id="boton-subir">Subir fotos</button>
+      </form>
+    </section>
+
+    <section class="grupo">
+      <h2>Fotos publicadas</h2>
+      <p class="ayuda" id="aviso-vacia" hidden>Todavía no hay fotos en la galería. Mientras tanto, la página principal muestra las fotos originales.</p>
+      <div class="lista" id="lista"></div>
+    </section>
+
+    <div class="mensaje" id="mensaje" role="status" hidden></div>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      getDocs,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      writeBatch,
+      query,
+      orderBy,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    /* =========================================================
+       FIREBASE Y CLOUDINARY
+       ========================================================= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0ubNo_ojBiATkTB5RNMP_OZkOodmvQnM",
+      authDomain: "cabinas-nelary.firebaseapp.com",
+      projectId: "cabinas-nelary",
+      storageBucket: "cabinas-nelary.firebasestorage.app",
+      messagingSenderId: "946760081226",
+      appId: "1:946760081226:web:466a4d1be01425f272abb3"
+    };
+
+    // La carpeta nelary/galeria viene configurada en el preset
+    const CLOUD_NAME = "kyhdlu4q";
+    const UPLOAD_PRESET = "nelary_galeria";
+    const TAMANO_MAXIMO = 15 * 1024 * 1024; // 15 MB
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const TAMANOS = [
+      ["", "Normal"],
+      ["ancha", "Ancha (2 columnas)"],
+      ["alta", "Alta (2 filas)"]
+    ];
+
+    /* =========================================================
+       ELEMENTOS
+       ========================================================= */
+    const pantallaLogin = document.getElementById("pantalla-login");
+    const pantallaEditor = document.getElementById("pantalla-editor");
+    const btnSalir = document.getElementById("btn-salir");
+    const btnTextos = document.getElementById("btn-textos");
+    const btnSolicitudes = document.getElementById("btn-solicitudes");
+    const formLogin = document.getElementById("form-login");
+    const botonLogin = document.getElementById("boton-login");
+    const errorLogin = document.getElementById("error-login");
+    const formSubir = document.getElementById("form-subir");
+    const inputArchivos = document.getElementById("archivos");
+    const claseNueva = document.getElementById("clase-nueva");
+    const descripcionNueva = document.getElementById("descripcion-nueva");
+    const botonSubir = document.getElementById("boton-subir");
+    const progreso = document.getElementById("progreso");
+    const avisoVacia = document.getElementById("aviso-vacia");
+    const lista = document.getElementById("lista");
+    const mensaje = document.getElementById("mensaje");
+
+    let fotosActuales = []; // { id, url, publicId, descripcion, clase, orden }
+
+    /* =========================================================
+       LOGIN
+       ========================================================= */
+    formLogin.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      errorLogin.textContent = "";
+      botonLogin.disabled = true;
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          document.getElementById("correo-login").value.trim(),
+          document.getElementById("clave-login").value
+        );
+      } catch (error) {
+        console.error(error);
+        errorLogin.textContent = "Correo o contraseña incorrectos.";
+      } finally {
+        botonLogin.disabled = false;
+      }
+    });
+
+    btnSalir.addEventListener("click", function () {
+      signOut(auth);
+    });
+
+    onAuthStateChanged(auth, function (usuario) {
+      if (usuario) {
+        pantallaLogin.hidden = true;
+        pantallaEditor.hidden = false;
+        btnSalir.hidden = false;
+        btnTextos.hidden = false;
+        btnSolicitudes.hidden = false;
+        cargarFotos();
+      } else {
+        pantallaEditor.hidden = true;
+        btnSalir.hidden = true;
+        btnTextos.hidden = true;
+        btnSolicitudes.hidden = true;
+        pantallaLogin.hidden = false;
+      }
+    });
+
+    /* =========================================================
+       MENSAJES Y AYUDAS
+       ========================================================= */
+    function mostrarMensaje(texto, esError) {
+      mensaje.textContent = texto;
+      mensaje.classList.toggle("error", !!esError);
+      mensaje.hidden = false;
+    }
+
+    // Miniatura cuadrada para el panel (Cloudinary la recorta y la optimiza)
+    function miniatura(url) {
+      return url.replace("/upload/", "/upload/c_fill,w_240,h_180,f_auto,q_auto/");
+    }
+
+    function boton(texto, alClic, esPeligro) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn-chico" + (esPeligro ? " peligro" : "");
+      b.textContent = texto;
+      b.addEventListener("click", alClic);
+      return b;
+    }
+
+    /* =========================================================
+       CARGAR Y PINTAR LA LISTA
+       ========================================================= */
+    async function cargarFotos() {
+      try {
+        const snap = await getDocs(query(collection(db, "galeria"), orderBy("orden")));
+        fotosActuales = snap.docs.map(function (d) {
+          return Object.assign({ id: d.id }, d.data());
+        });
+        pintarLista();
+      } catch (error) {
+        console.error(error);
+        mostrarMensaje("No pudimos cargar la galería: " + (error.code || error.message), true);
+      }
+    }
+
+    function pintarLista() {
+      lista.textContent = "";
+      avisoVacia.hidden = fotosActuales.length > 0;
+
+      fotosActuales.forEach(function (f, i) {
+        const tarjeta = document.createElement("article");
+        tarjeta.className = "foto-card";
+
+        const img = document.createElement("img");
+        img.src = miniatura(f.url);
+        img.alt = f.descripcion || "";
+        img.loading = "lazy";
+
+        const campos = document.createElement("div");
+        campos.className = "foto-campos";
+
+        const selTamano = document.createElement("select");
+        TAMANOS.forEach(function (par) {
+          const op = document.createElement("option");
+          op.value = par[0];
+          op.textContent = par[1];
+          selTamano.appendChild(op);
+        });
+        selTamano.value = f.clase || "";
+        selTamano.setAttribute("aria-label", "Tamaño de la foto");
+        selTamano.addEventListener("change", function () {
+          guardarCampo(f.id, { clase: selTamano.value });
+        });
+
+        const inputDesc = document.createElement("input");
+        inputDesc.type = "text";
+        inputDesc.maxLength = 200;
+        inputDesc.value = f.descripcion || "";
+        inputDesc.placeholder = "Descripción";
+        inputDesc.setAttribute("aria-label", "Descripción de la foto");
+        inputDesc.addEventListener("change", function () {
+          guardarCampo(f.id, { descripcion: inputDesc.value.trim() });
+        });
+
+        const acciones = document.createElement("div");
+        acciones.className = "foto-acciones";
+
+        const btnArriba = boton("↑ Subir", function () { mover(i, -1); });
+        btnArriba.disabled = i === 0;
+        const btnAbajo = boton("↓ Bajar", function () { mover(i, 1); });
+        btnAbajo.disabled = i === fotosActuales.length - 1;
+        const btnQuitar = boton("Eliminar", function () { eliminar(f.id); }, true);
+
+        acciones.append(btnArriba, btnAbajo, btnQuitar);
+        campos.append(selTamano, inputDesc, acciones);
+        tarjeta.append(img, campos);
+        lista.appendChild(tarjeta);
+      });
+    }
+
+    async function guardarCampo(id, cambios) {
+      try {
+        await updateDoc(doc(db, "galeria", id), cambios);
+        mostrarMensaje("Cambio guardado.");
+        await cargarFotos();
+      } catch (error) {
+        console.error(error);
+        mostrarMensaje("No se pudo guardar: " + (error.code || error.message), true);
+        await cargarFotos();
+      }
+    }
+
+    /* =========================================================
+       ORDENAR Y ELIMINAR
+       ========================================================= */
+    async function mover(i, direccion) {
+      const j = i + direccion;
+      if (j < 0 || j >= fotosActuales.length) return;
+
+      const nuevo = fotosActuales.slice();
+      const tmp = nuevo[i];
+      nuevo[i] = nuevo[j];
+      nuevo[j] = tmp;
+
+      // Renumera solo las fotos que cambiaron de posición
+      const lote = writeBatch(db);
+      nuevo.forEach(function (f, k) {
+        if (f.orden !== k) lote.update(doc(db, "galeria", f.id), { orden: k });
+      });
+
+      try {
+        await lote.commit();
+        await cargarFotos();
+      } catch (error) {
+        console.error(error);
+        mostrarMensaje("No se pudo cambiar el orden: " + (error.code || error.message), true);
+      }
+    }
+
+    async function eliminar(id) {
+      if (!confirm("¿Quitar esta foto de la galería? La imagen seguirá en Cloudinary.")) return;
+      try {
+        await deleteDoc(doc(db, "galeria", id));
+        mostrarMensaje("Foto quitada de la galería.");
+        await cargarFotos();
+      } catch (error) {
+        console.error(error);
+        mostrarMensaje("No se pudo quitar la foto: " + (error.code || error.message), true);
+      }
+    }
+
+    /* =========================================================
+       SUBIR FOTOS
+       ========================================================= */
+    async function subirACloudinary(archivo) {
+      const datos = new FormData();
+      datos.append("file", archivo);
+      datos.append("upload_preset", UPLOAD_PRESET);
+
+      const respuesta = await fetch("https://api.cloudinary.com/v1_1/" + CLOUD_NAME + "/image/upload", {
+        method: "POST",
+        body: datos
+      });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error((resultado.error && resultado.error.message) || "Cloudinary respondió con error " + respuesta.status);
+      }
+      return resultado;
+    }
+
+    formSubir.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      mensaje.hidden = true;
+
+      const seleccionados = Array.from(inputArchivos.files);
+      if (!seleccionados.length) {
+        mostrarMensaje("Elija al menos una foto.", true);
+        return;
+      }
+
+      const validos = [];
+      const rechazados = [];
+      seleccionados.forEach(function (archivo) {
+        if (archivo.type.indexOf("image/") === 0 && archivo.size <= TAMANO_MAXIMO) {
+          validos.push(archivo);
+        } else {
+          rechazados.push(archivo.name);
+        }
+      });
+
+      if (!validos.length) {
+        mostrarMensaje("Ninguna foto se puede subir. Use imágenes de menos de 15 MB.", true);
+        return;
+      }
+
+      botonSubir.disabled = true;
+      let siguiente = fotosActuales.length
+        ? Math.max.apply(null, fotosActuales.map(function (f) { return Number(f.orden) || 0; })) + 1
+        : 0;
+      const fallos = rechazados.slice();
+      let subidas = 0;
+
+      for (let k = 0; k < validos.length; k++) {
+        progreso.textContent = "Subiendo " + (k + 1) + " de " + validos.length + "…";
+        try {
+          const img = await subirACloudinary(validos[k]);
+          await addDoc(collection(db, "galeria"), {
+            url: img.secure_url,
+            publicId: img.public_id,
+            descripcion: descripcionNueva.value.trim() || "Fotografía del refugio",
+            clase: claseNueva.value,
+            orden: siguiente,
+            creadoEn: serverTimestamp()
+          });
+          siguiente++;
+          subidas++;
+        } catch (error) {
+          console.error(error);
+          fallos.push(validos[k].name);
+        }
+      }
+
+      progreso.textContent = "";
+      botonSubir.disabled = false;
+      inputArchivos.value = "";
+      await cargarFotos();
+
+      if (fallos.length) {
+        mostrarMensaje("Se subieron " + subidas + ". No se pudieron subir: " + fallos.join(", "), true);
+      } else {
+        mostrarMensaje("Listo: " + subidas + (subidas === 1 ? " foto agregada." : " fotos agregadas."));
+      }
+    });
+  </script>
+
+</body>
+</html>
