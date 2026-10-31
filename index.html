@@ -878,6 +878,7 @@
       font-size: 1.35rem;
       color: var(--verde);
       line-height: 1.4;
+      word-break: break-word;
     }
 
     /* ---------- FOOTER ---------- */
@@ -994,7 +995,7 @@
       <div class="eyebrow">Refugio en el bosque · Costa Rica</div>
       <img class="hero-logo" src="logo-nelary.png" alt="NELARY">
       <div class="linea-dorada"></div>
-      <p>Cabañas entre la montaña y el bosque, para descansar en pareja, en familia o con amigos.</p>
+      <p id="txt-hero">Cabañas entre la montaña y el bosque, para descansar en pareja, en familia o con amigos.</p>
       <a href="#reservar" class="btn">Reservar ahora</a>
     </div>
     <div class="hero-scroll" aria-hidden="true"></div>
@@ -1003,7 +1004,7 @@
   <!-- INTRO -->
   <section class="intro">
     <div class="wrap centro reveal">
-      <p class="lead">Un refugio de madera con <em>vistas a la montaña</em>, fogón bajo las estrellas, jacuzzi y el silencio del bosque.</p>
+      <p class="lead" id="txt-intro">Un refugio de madera con <em>vistas a la montaña</em>, fogón bajo las estrellas, jacuzzi y el silencio del bosque.</p>
     </div>
   </section>
 
@@ -1024,7 +1025,7 @@
         <div class="cabana-texto reveal">
           <span class="cabana-numero">Nº 01</span>
           <h3>Cabaña Grande</h3>
-          <p class="descripcion">Espacio amplio para hasta 8 personas, con sala de sillones, cocina equipada, dos baños completos y jacuzzi recién instalado.</p>
+          <p class="descripcion" id="txt-desc-grande">Espacio amplio para hasta 8 personas, con sala de sillones, cocina equipada, dos baños completos y jacuzzi recién instalado.</p>
           <ul class="servicios">
             <li>Hasta 8 huéspedes</li>
             <li>2 baños completos</li>
@@ -1048,7 +1049,7 @@
         <div class="cabana-texto reveal">
           <span class="cabana-numero">Nº 02</span>
           <h3>Cabina Pequeña</h3>
-          <p class="descripcion">Acogedora y romántica, pensada para dos. Madera por todos lados, ventana en el techo y una tina para relajarse.</p>
+          <p class="descripcion" id="txt-desc-pequena">Acogedora y romántica, pensada para dos. Madera por todos lados, ventana en el techo y una tina para relajarse.</p>
           <ul class="servicios">
             <li>2 huéspedes</li>
             <li>Baño privado con ducha</li>
@@ -1258,15 +1259,15 @@
       <div class="contacto-grid">
         <div class="contacto-item reveal">
           <span class="etiqueta">Ubicación</span>
-          <p>Refugio NELARY<br>Costa Rica</p>
+          <p id="txt-ubicacion">Refugio NELARY, Costa Rica</p>
         </div>
         <div class="contacto-item reveal">
           <span class="etiqueta">Teléfono</span>
-          <p>0000-0000</p>
+          <p id="txt-telefono">0000-0000</p>
         </div>
         <div class="contacto-item reveal">
           <span class="etiqueta">Correo</span>
-          <p>correo@refugionelary.com</p>
+          <p id="txt-correo">correo@refugionelary.com</p>
         </div>
       </div>
     </div>
@@ -1295,8 +1296,10 @@
     import {
       getFirestore,
       collection,
-      addDoc,
+      doc,
+      getDoc,
       getDocs,
+      addDoc,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -1317,6 +1320,36 @@
 
     const CABANAS = ["Cabaña Grande", "Cabina Pequeña"];
     const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 2 };
+
+    /* =========================================================
+       TEXTOS DEL SITIO (desde Firestore, documento config/sitio)
+       Si el documento no existe o falla la conexión, se muestran
+       los textos escritos en esta página.
+       ========================================================= */
+    async function cargarTextos() {
+      try {
+        const snap = await getDoc(doc(db, "config", "sitio"));
+        if (!snap.exists()) return;
+
+        const c = snap.data();
+        const textos = {
+          "txt-hero": c.heroTexto,
+          "txt-intro": c.introTexto,
+          "txt-desc-grande": c.descGrande,
+          "txt-desc-pequena": c.descPequena,
+          "txt-ubicacion": c.ubicacion,
+          "txt-telefono": c.telefono,
+          "txt-correo": c.correo
+        };
+
+        Object.keys(textos).forEach(function (id) {
+          const el = document.getElementById(id);
+          if (el && textos[id]) el.textContent = textos[id];
+        });
+      } catch (error) {
+        console.warn("Se muestran los textos por defecto:", error);
+      }
+    }
 
     /* =========================================================
        UTILIDADES DE FECHA (hora local, sin desfases de zona)
@@ -1385,8 +1418,8 @@
           nueva[c] = { reservado: [], pendiente: [] };
         });
 
-        snapshot.forEach(function (doc) {
-          const b = doc.data();
+        snapshot.forEach(function (d) {
+          const b = d.data();
           if (!nueva[b.cabana] || typeof b.fecha !== "string") return;
           if (b.estado === "pendiente") {
             nueva[b.cabana].pendiente.push(b.fecha);
@@ -1633,6 +1666,7 @@
     });
 
     sincronizarInputs();
+    cargarTextos();
     cargarDisponibilidad();
 
     /* =========================================================
