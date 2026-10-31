@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Textos del sitio | Refugio NELARY</title>
+  <link rel="icon" type="image/png" href="logo-nelary.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --verde: #22412F;
+      --verde-claro: #3B6A4D;
+      --crema: #F3EBD9;
+      --crema-suave: #F9F4E8;
+      --crema-oscuro: #E0D1B0;
+      --dorado: #B8924A;
+      --dorado-oscuro: #8A6A30;
+      --texto: #1E1E1E;
+      --gris: #6B6558;
+      --blanco: #FFFFFF;
+      --rojo: #7A3228;
+      --rojo-fondo: #F6E9E4;
+      --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+      --sans: "Inter", "Segoe UI", Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      font-weight: 300;
+      background: var(--crema-suave);
+      color: var(--texto);
+      line-height: 1.55;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2 {
+      font-family: var(--serif);
+      font-weight: 500;
+      color: var(--verde);
+      line-height: 1.15;
+    }
+
+    button, input, textarea { font-family: inherit; }
+
+    [hidden] { display: none !important; }
+
+    header {
+      background: var(--verde);
+      color: var(--crema);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    header img { height: 32px; width: auto; }
+
+    .titulo {
+      font-family: var(--serif);
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+    }
+
+    .acciones-header { display: flex; gap: 8px; }
+
+    .btn-header {
+      background: transparent;
+      color: var(--crema);
+      border: 1px solid rgba(243, 235, 217, 0.5);
+      padding: 7px 12px;
+      font-size: 0.66rem;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .contenedor {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    .login { margin-top: 40px; }
+    .login h1 { font-size: 1.9rem; margin-bottom: 18px; }
+
+    form { display: grid; gap: 22px; }
+
+    .grupo {
+      background: var(--blanco);
+      border: 1px solid var(--crema-oscuro);
+      padding: 20px 20px 8px;
+    }
+
+    .grupo h2 {
+      font-size: 1.35rem;
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.64rem;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--verde-claro);
+      margin-bottom: 2px;
+      font-weight: 500;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px 0;
+      border: none;
+      border-bottom: 1px solid var(--crema-oscuro);
+      background: transparent;
+      font-size: 1rem;
+      color: var(--texto);
+      border-radius: 0;
+      margin-bottom: 16px;
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    input:focus, textarea:focus { outline: none; border-bottom-color: var(--dorado); }
+
+    .btn {
+      background: var(--verde);
+      color: var(--blanco);
+      border: none;
+      padding: 16px;
+      font-size: 0.74rem;
+      letter-spacing: 2.2px;
+      text-transform: uppercase;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn:hover:not(:disabled) { background: var(--verde-claro); }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+
+    .error-texto { color: var(--rojo); font-size: 0.9rem; min-height: 1.2em; }
+
+    .mensaje {
+      padding: 14px 16px;
+      background: var(--crema);
+      color: var(--verde);
+      font-family: var(--serif);
+      font-size: 1.05rem;
+      font-style: italic;
+    }
+
+    .mensaje.error { background: var(--rojo-fondo); color: var(--rojo); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <img src="logo-nelary.png" alt="NELARY">
+      <span class="titulo">Textos del sitio</span>
+    </div>
+    <div class="acciones-header">
+      <a href="admin.html" class="btn-header" id="btn-volver" hidden>Solicitudes</a>
+      <button type="button" class="btn-header" id="btn-salir" hidden>Salir</button>
+    </div>
+  </header>
+
+  <!-- LOGIN -->
+  <section class="contenedor login" id="pantalla-login" hidden>
+    <h1>Ingreso</h1>
+    <form id="form-login">
+      <div>
+        <label for="correo-login">Correo</label>
+        <input type="email" id="correo-login" required autocomplete="username">
+      </div>
+      <div>
+        <label for="clave-login">Contraseña</label>
+        <input type="password" id="clave-login" required autocomplete="current-password">
+      </div>
+      <p class="error-texto" id="error-login"></p>
+      <button type="submit" class="btn" id="boton-login">Entrar</button>
+    </form>
+  </section>
+
+  <!-- EDITOR -->
+  <main class="contenedor" id="pantalla-editor" hidden>
+    <form id="form-sitio">
+
+      <section class="grupo">
+        <h2>Portada</h2>
+        <label for="s-hero">Texto bajo el logo</label>
+        <textarea id="s-hero" maxlength="300"></textarea>
+        <label for="s-intro">Frase de introducción</label>
+        <textarea id="s-intro" maxlength="300"></textarea>
+      </section>
+
+      <section class="grupo">
+        <h2>Cabañas</h2>
+        <label for="s-desc-grande">Descripción de la Cabaña Grande</label>
+        <textarea id="s-desc-grande" maxlength="400"></textarea>
+        <label for="s-desc-pequena">Descripción de la Cabina Pequeña</label>
+        <textarea id="s-desc-pequena" maxlength="400"></textarea>
+      </section>
+
+      <section class="grupo">
+        <h2>Contacto</h2>
+        <label for="s-ubicacion">Ubicación</label>
+        <input type="text" id="s-ubicacion" maxlength="120">
+        <label for="s-telefono">Teléfono</label>
+        <input type="tel" id="s-telefono" maxlength="30">
+        <label for="s-correo">Correo</label>
+        <input type="email" id="s-correo" maxlength="120">
+      </section>
+
+      <p class="error-texto" id="error-editor"></p>
+      <button type="submit" class="btn" id="boton-guardar">Guardar cambios</button>
+      <div class="mensaje" id="mensaje" role="status" hidden></div>
+    </form>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    /* =========================================================
+       FIREBASE
+       ========================================================= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB0ubNo_ojBiATkTB5RNMP_OZkOodmvQnM",
+      authDomain: "cabinas-nelary.firebaseapp.com",
+      projectId: "cabinas-nelary",
+      storageBucket: "cabinas-nelary.firebasestorage.app",
+      messagingSenderId: "946760081226",
+      appId: "1:946760081226:web:466a4d1be01425f272abb3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const referencia = doc(db, "config", "sitio");
+
+    /* =========================================================
+       ELEMENTOS
+       ========================================================= */
+    const pantallaLogin = document.getElementById("pantalla-login");
+    const pantallaEditor = document.getElementById("pantalla-editor");
+    const btnSalir = document.getElementById("btn-salir");
+    const btnVolver = document.getElementById("btn-volver");
+    const formLogin = document.getElementById("form-login");
+    const botonLogin = document.getElementById("boton-login");
+    const errorLogin = document.getElementById("error-login");
+    const errorEditor = document.getElementById("error-editor");
+    const formSitio = document.getElementById("form-sitio");
+    const botonGuardar = document.getElementById("boton-guardar");
+    const mensaje = document.getElementById("mensaje");
+
+    // Relación entre cada campo del formulario y su clave en Firestore
+    const campos = {
+      "s-hero": "heroTexto",
+      "s-intro": "introTexto",
+      "s-desc-grande": "descGrande",
+      "s-desc-pequena": "descPequena",
+      "s-ubicacion": "ubicacion",
+      "s-telefono": "telefono",
+      "s-correo": "correo"
+    };
+
+    /* =========================================================
+       LOGIN
+       ========================================================= */
+    formLogin.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      errorLogin.textContent = "";
+      botonLogin.disabled = true;
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          document.getElementById("correo-login").value.trim(),
+          document.getElementById("clave-login").value
+        );
+      } catch (error) {
+        console.error(error);
+        errorLogin.textContent = "Correo o contraseña incorrectos.";
+      } finally {
+        botonLogin.disabled = false;
+      }
+    });
+
+    btnSalir.addEventListener("click", function () {
+      signOut(auth);
+    });
+
+    onAuthStateChanged(auth, function (usuario) {
+      if (usuario) {
+        pantallaLogin.hidden = true;
+        pantallaEditor.hidden = false;
+        btnSalir.hidden = false;
+        btnVolver.hidden = false;
+        cargarTextos();
+      } else {
+        pantallaEditor.hidden = true;
+        btnSalir.hidden = true;
+        btnVolver.hidden = true;
+        pantallaLogin.hidden = false;
+      }
+    });
+
+    /* =========================================================
+       CARGAR Y GUARDAR
+       ========================================================= */
+    async function cargarTextos() {
+      errorEditor.textContent = "";
+      try {
+        const snap = await getDoc(referencia);
+        const datos = snap.exists() ? snap.data() : {};
+        Object.keys(campos).forEach(function (id) {
+          document.getElementById(id).value = datos[campos[id]] || "";
+        });
+      } catch (error) {
+        console.error(error);
+        errorEditor.textContent = "No pudimos cargar los textos. Revise que su cuenta esté autorizada.";
+      }
+    }
+
+    function mostrarMensaje(texto, esError) {
+      mensaje.textContent = texto;
+      mensaje.classList.toggle("error", !!esError);
+      mensaje.hidden = false;
+    }
+
+    formSitio.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      mensaje.hidden = true;
+
+      const datos = {};
+      Object.keys(campos).forEach(function (id) {
+        datos[campos[id]] = document.getElementById(id).value.trim();
+      });
+
+      botonGuardar.disabled = true;
+      const textoBoton = botonGuardar.textContent;
+      botonGuardar.textContent = "Guardando…";
+
+      try {
+        await setDoc(referencia, datos, { merge: true });
+        mostrarMensaje("Cambios guardados. Recargue la página principal para verlos.");
+      } catch (error) {
+        console.error(error);
+        mostrarMensaje("No se pudieron guardar los cambios: " + (error.code || error.message), true);
+      } finally {
+        botonGuardar.disabled = false;
+        botonGuardar.textContent = textoBoton;
+      }
+    });
+  </script>
+
+</body>
+</html>
