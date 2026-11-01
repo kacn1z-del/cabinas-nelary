@@ -408,6 +408,7 @@
       orderBy,
       limit,
       updateDoc,
+      deleteDoc,
       writeBatch,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -601,14 +602,16 @@
     }
 
     function botonesDe(s) {
+      let html = "";
       if (s.estado === "nueva") {
-        return '<button type="button" data-accion="confirmar" data-id="' + esc(s.id) + '">Confirmar</button>' +
-               '<button type="button" class="sec" data-accion="rechazar" data-id="' + esc(s.id) + '">Rechazar</button>';
+        html += '<button type="button" data-accion="confirmar" data-id="' + esc(s.id) + '">Confirmar</button>' +
+                '<button type="button" class="sec" data-accion="rechazar" data-id="' + esc(s.id) + '">Rechazar</button>';
       }
       if (s.estado === "confirmada") {
-        return '<button type="button" class="sec" data-accion="cancelar" data-id="' + esc(s.id) + '">Cancelar reserva</button>';
+        html += '<button type="button" class="sec" data-accion="cancelar" data-id="' + esc(s.id) + '">Cancelar reserva</button>';
       }
-      return "";
+      html += '<button type="button" class="sec" data-accion="eliminar" data-id="' + esc(s.id) + '">Eliminar</button>';
+      return html;
     }
 
     function tarjetaDe(s) {
@@ -654,7 +657,7 @@
     filtro.addEventListener("change", render);
 
     /* =========================================================
-       BITÁCORA DE LIMPIEZA (solo lectura)
+       BITÁCORA DE LIMPIEZA
        ========================================================= */
     async function cargarBitacora() {
       listaBitacora.innerHTML = '<p class="vacio">Cargando…</p>';
@@ -703,6 +706,7 @@
         '<p class="contacto">Reportó: ' + esc(quien) + "</p>" +
         nota +
         fotos +
+        '<div class="acciones"><button type="button" class="sec" data-accion="eliminar-reporte" data-id="' + esc(r.id) + '">Eliminar reporte</button></div>' +
       "</article>";
     }
 
@@ -726,6 +730,23 @@
     filtroTipo.addEventListener("change", renderBitacora);
     btnActualizarBit.addEventListener("click", cargarBitacora);
 
+    listaBitacora.addEventListener("click", async function (e) {
+      const boton = e.target.closest("button[data-accion='eliminar-reporte']");
+      if (!boton) return;
+
+      if (!confirm("¿Eliminar este reporte? No se puede recuperar.")) return;
+
+      boton.disabled = true;
+      try {
+        await deleteDoc(doc(db, "bitacora", boton.dataset.id));
+        await cargarBitacora();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo eliminar el reporte: " + (error.code || error.message));
+        boton.disabled = false;
+      }
+    });
+
     /* =========================================================
        ACCIONES DE SOLICITUDES
        ========================================================= */
@@ -742,6 +763,7 @@
         if (accion === "confirmar") await confirmar(s);
         if (accion === "rechazar") await rechazar(s);
         if (accion === "cancelar") await cancelar(s);
+        if (accion === "eliminar") await eliminar(s);
         await cargarSolicitudes();
       } catch (error) {
         console.error(error);
@@ -795,6 +817,19 @@
         batch.delete(d.ref);
       });
       batch.update(doc(db, "solicitudes", s.id), { estado: "cancelada" });
+      await batch.commit();
+    }
+
+    // Borra la solicitud por completo y libera sus noches, si las tenía
+    async function eliminar(s) {
+      if (!confirm("¿Eliminar la solicitud de " + s.nombre + " de forma permanente? Si estaba confirmada, sus noches quedarán libres.")) return;
+
+      const bloqueados = await getDocs(query(collection(db, "bloqueos"), where("solicitudId", "==", s.id)));
+      const batch = writeBatch(db);
+      bloqueados.docs.forEach(function (d) {
+        batch.delete(d.ref);
+      });
+      batch.delete(doc(db, "solicitudes", s.id));
       await batch.commit();
     }
   </script>
