@@ -1316,10 +1316,11 @@
       doc,
       getDoc,
       getDocs,
-      addDoc,
       query,
       orderBy,
-      serverTimestamp
+      runTransaction,
+      serverTimestamp,
+      Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     /* =========================================================
@@ -1575,15 +1576,14 @@
 
     function t(clave) {
       const diccionario = T[idioma];
-      const valor = diccionario[clave] !== undefined ? diccionario[clave] : T.es[clave];
-      return valor;
+      return diccionario[clave] !== undefined ? diccionario[clave] : T.es[clave];
     }
 
     function localeActual() {
       return idioma === "en" ? "en-US" : "es-CR";
     }
 
-    // Campos de Firestore que tienen versión en inglés (sufijo "En")
+    // Campos de Firestore con versión en inglés (sufijo "En")
     const CAMPOS_FIRESTORE = {
       "txt-hero": "heroTexto",
       "txt-intro": "introTexto",
@@ -1643,8 +1643,6 @@
 
     /* =========================================================
        TEXTOS DEL SITIO (desde Firestore, documento config/sitio)
-       Si el documento no existe o falla la conexión, se muestran
-       los textos por defecto.
        ========================================================= */
     async function cargarTextos() {
       try {
@@ -1677,6 +1675,31 @@
       return textoDesdeFecha(d);
     }
 
+    // Noches de la estadía: desde la entrada hasta el día anterior a la salida
+    function listaNoches(entrada, salida) {
+      const noches = [];
+      const d = fechaDesdeTexto(entrada);
+      const fin = fechaDesdeTexto(salida);
+      while (d < fin) {
+        noches.push(textoDesdeFecha(d));
+        d.setDate(d.getDate() + 1);
+      }
+      return noches;
+    }
+
+    // Mismo identificador que usa el panel admin: una clave por cabaña y noche
+    function claveBloqueo(cabana, fecha) {
+      return cabana + "_" + fecha;
+    }
+
+    // Un bloqueo pendiente vencido (más de 48 horas) ya no ocupa la noche
+    function estaVencido(b) {
+      return b.estado === "pendiente" &&
+        !!b.expiraEn &&
+        typeof b.expiraEn.toMillis === "function" &&
+        b.expiraEn.toMillis() < Date.now();
+    }
+
     function formatoCorto(texto) {
       return fechaDesdeTexto(texto).toLocaleDateString(localeActual(), { day: "numeric", month: "short" });
     }
@@ -1686,9 +1709,8 @@
     const hoyTexto = textoDesdeFecha(hoy);
 
     /* =========================================================
-       ESTADO
+       ESTADO Y ELEMENTOS
        ========================================================= */
-    // Se llena desde Firestore (colección "bloqueos")
     let disponibilidad = {};
     let estadoDisponibilidad = "cargando"; // "cargando" | "ok" | "error"
     let mesVisible = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
@@ -1710,8 +1732,9 @@
 
     /* =========================================================
        DISPONIBILIDAD DESDE FIRESTORE
-       Cada documento de "bloqueos" es un día:
-       { cabana: "Cabaña Grande", fecha: "2026-12-20", estado: "reservado" | "pendiente" }
+       Cada documento de "bloqueos" es una noche:
+       { cabana, fecha, estado: "reservado" | "pendiente", expiraEn? }
+       Los pendientes vencidos se tratan como libres.
        ========================================================= */
     async function cargarDisponibilidad() {
       estadoDisponibilidad = "cargando";
@@ -1728,6 +1751,7 @@
           const b = d.data();
           if (!nueva[b.cabana] || typeof b.fecha !== "string") return;
           if (b.estado === "pendiente") {
+            if (estaVencido(b)) return;
             nueva[b.cabana].pendiente.push(b.fecha);
           } else {
             nueva[b.cabana].reservado.push(b.fecha);
@@ -1791,7 +1815,7 @@
         calGrid.appendChild(celda);
       });
 
-      // Lunes = 0
+      // Lunes = primera columna
       const primerDia = (new Date(anio, mes, 1).getDay() + 6) % 7;
       for (let v = 0; v < primerDia; v++) {
         const vacia = document.createElement("div");
@@ -1901,7 +1925,9 @@
 
     /* =========================================================
        ENVÍO DE LA SOLICITUD
-       Se guarda en la colección "solicitudes" de Firestore.
+       La solicitud y sus noches se guardan en una sola transacción.
+       Si alguna noche ya está ocupada, no se guarda nada.
+       Las noches quedan "pendiente" durante 48 horas.
        ========================================================= */
     function mostrarMensaje(texto, esError) {
       mensaje.textContent = texto;
@@ -1927,15 +1953,20 @@
         return;
       }
 
-      // Verifica de nuevo la disponibilidad antes de guardar
+      // Verificación previa con los datos en pantalla
       if (hayBloqueoEntre(entradaSel, salidaSel)) {
         mostrarMensaje(t("msgNoDisp"), true);
         await cargarDisponibilidad();
         return;
       }
 
+      const cabana = cabanaSelect.value;
+      const noches = listaNoches(entradaSel, salidaSel);
+      const ref = doc(collection(db, "solicitudes"));
+      const expiraEn = Timestamp.fromMillis(Date.now() + 48 * 60 * 60 * 1000);
+
       const datos = {
-        cabana: cabanaSelect.value,
+        cabana: cabana,
         entrada: entradaSel,
         salida: salidaSel,
         personas: Number(personasInput.value),
@@ -1944,6 +1975,7 @@
         correo: document.getElementById("correo").value.trim(),
         notas: document.getElementById("notas").value.trim(),
         estado: "nueva",
+        canal: "web",
         creadoEn: serverTimestamp()
       };
 
@@ -1952,18 +1984,50 @@
       botonEnviar.textContent = t("enviando");
 
       try {
-        await addDoc(collection(db, "solicitudes"), datos);
+        await runTransaction(db, async function (tx) {
+          const refs = noches.map(function (fecha) {
+            return doc(db, "bloqueos", claveBloqueo(cabana, fecha));
+          });
+
+          const snaps = [];
+          for (const r of refs) {
+            snaps.push(await tx.get(r));
+          }
+
+          const ocupada = snaps.some(function (s) {
+            return s.exists() && !estaVencido(s.data());
+          });
+          if (ocupada) throw new Error("NO_DISPONIBLE");
+
+          refs.forEach(function (r, i) {
+            tx.set(r, {
+              cabana: cabana,
+              fecha: noches[i],
+              estado: "pendiente",
+              solicitudId: ref.id,
+              expiraEn: expiraEn,
+              creadoEn: serverTimestamp()
+            });
+          });
+
+          tx.set(ref, datos);
+        });
 
         form.reset();
         entradaSel = "";
         salidaSel = "";
         personasInput.max = MAX_PERSONAS[cabanaSelect.value] || 8;
         sincronizarInputs();
-        renderCalendario();
+        await cargarDisponibilidad();
         mostrarMensaje(t("msgGracias"));
       } catch (error) {
-        console.error("No se pudo enviar la solicitud:", error);
-        mostrarMensaje(t("msgErrorEnvio"), true);
+        if (error.message === "NO_DISPONIBLE") {
+          mostrarMensaje(t("msgNoDisp"), true);
+          await cargarDisponibilidad();
+        } else {
+          console.error("No se pudo enviar la solicitud:", error);
+          mostrarMensaje(t("msgErrorEnvio"), true);
+        }
       } finally {
         botonEnviar.disabled = false;
         botonEnviar.textContent = textoOriginal;
