@@ -224,6 +224,20 @@
 
     .nav-reservar:hover { background: var(--dorado); border-color: var(--dorado); color: var(--blanco); }
 
+    .idioma {
+      background: transparent;
+      color: inherit;
+      border: 1px solid currentColor;
+      padding: 8px 12px;
+      font-size: 0.68rem;
+      letter-spacing: 2px;
+      cursor: pointer;
+      opacity: 0.9;
+      transition: opacity 0.3s var(--ease);
+    }
+
+    .idioma:hover { opacity: 1; }
+
     /* ---------- HERO ---------- */
     .hero {
       position: relative;
@@ -938,8 +952,10 @@
       header.scrolled .nav-wrap { padding: 12px 22px; }
       .logo img { height: 36px; }
       header.scrolled .logo img { height: 32px; }
+      .nav-links { gap: 12px; }
       .nav-links a:not(.nav-reservar) { display: none; }
       .nav-reservar { padding: 9px 16px; }
+      .idioma { padding: 7px 10px; }
       .hero-logo { width: min(420px, 86vw); }
       .seccion, .intro { padding: 100px 0; }
       .cabana-foto img { height: 340px; }
@@ -975,15 +991,16 @@
 
   <header id="cabecera">
     <div class="nav-wrap">
-      <a href="#inicio" class="logo" aria-label="NELARY, inicio">
+      <a href="#inicio" class="logo" aria-label="NELARY">
         <img src="logo-nelary.png" alt="NELARY">
       </a>
       <nav class="nav-links">
-        <a href="#cabanas">Cabañas</a>
-        <a href="#galeria">Galería</a>
-        <a href="#experiencias">Experiencias</a>
-        <a href="#contacto">Contacto</a>
-        <a href="#reservar" class="nav-reservar">Reservar</a>
+        <a href="#cabanas" data-i18n="navCabanas">Cabañas</a>
+        <a href="#galeria" data-i18n="navGaleria">Galería</a>
+        <a href="#experiencias" data-i18n="navExperiencias">Experiencias</a>
+        <a href="#contacto" data-i18n="navContacto">Contacto</a>
+        <button type="button" class="idioma" id="btn-idioma" aria-label="View in English">EN</button>
+        <a href="#reservar" class="nav-reservar" data-i18n="navReservar">Reservar</a>
       </nav>
     </div>
   </header>
@@ -992,11 +1009,11 @@
   <div class="hero" id="inicio">
     <div class="hero-fondo" aria-hidden="true"></div>
     <div class="hero-contenido">
-      <div class="eyebrow">Refugio en el bosque · Costa Rica</div>
+      <div class="eyebrow" data-i18n="heroEyebrow">Refugio en el bosque · Costa Rica</div>
       <img class="hero-logo" src="logo-nelary.png" alt="NELARY">
       <div class="linea-dorada"></div>
-      <p id="txt-hero">Cabañas entre la montaña y el bosque, para descansar en pareja, en familia o con amigos.</p>
-      <a href="#reservar" class="btn">Reservar ahora</a>
+      <p id="txt-hero" data-i18n="heroTexto">Cabañas entre la montaña y el bosque, para descansar en pareja, en familia o con amigos.</p>
+      <a href="#reservar" class="btn" data-i18n="heroBtn">Reservar ahora</a>
     </div>
     <div class="hero-scroll" aria-hidden="true"></div>
   </div>
@@ -1004,7 +1021,7 @@
   <!-- INTRO -->
   <section class="intro">
     <div class="wrap centro reveal">
-      <p class="lead" id="txt-intro">Un refugio de madera con <em>vistas a la montaña</em>, fogón bajo las estrellas, jacuzzi y el silencio del bosque.</p>
+      <p class="lead" id="txt-intro" data-i18n-html="introTexto">Un refugio de madera con <em>vistas a la montaña</em>, fogón bajo las estrellas, jacuzzi y el silencio del bosque.</p>
     </div>
   </section>
 
@@ -1012,9 +1029,9 @@
   <section class="seccion" id="cabanas">
     <div class="wrap">
       <div class="centro reveal">
-        <span class="eyebrow">Nuestras cabañas</span>
-        <h2 class="titulo-seccion">Elige tu espacio</h2>
-        <p class="subtitulo">Cada cabaña tiene su propio carácter y su propia privacidad.</p>
+        <span class="eyebrow" data-i18n="cabEyebrow">Nuestras cabañas</span>
+        <h2 class="titulo-seccion" data-i18n="cabTitulo">Elige tu espacio</h2>
+        <p class="subtitulo" data-i18n="cabSub">Cada cabaña tiene su propio carácter y su propia privacidad.</p>
       </div>
 
       <!-- Cabaña grande -->
@@ -1024,19 +1041,19 @@
         </div>
         <div class="cabana-texto reveal">
           <span class="cabana-numero">Nº 01</span>
-          <h3>Cabaña Grande</h3>
-          <p class="descripcion" id="txt-desc-grande">Espacio amplio para hasta 8 personas, con sala de sillones, cocina equipada, dos baños completos y jacuzzi recién instalado.</p>
+          <h3 data-i18n="cabGrandeNombre">Cabaña Grande</h3>
+          <p class="descripcion" id="txt-desc-grande" data-i18n="descGrande">Espacio amplio para hasta 8 personas, con sala de sillones, cocina equipada, dos baños completos y jacuzzi recién instalado.</p>
           <ul class="servicios">
-            <li>Hasta 8 huéspedes</li>
-            <li>2 baños completos</li>
-            <li>Cocina equipada</li>
-            <li>Jacuzzi</li>
-            <li>Fogón al aire libre</li>
-            <li>Vista a la montaña</li>
+            <li data-i18n="grandeS1">Hasta 8 huéspedes</li>
+            <li data-i18n="grandeS2">2 baños completos</li>
+            <li data-i18n="grandeS3">Cocina equipada</li>
+            <li data-i18n="grandeS4">Jacuzzi</li>
+            <li data-i18n="grandeS5">Fogón al aire libre</li>
+            <li data-i18n="grandeS6">Vista a la montaña</li>
           </ul>
           <div class="cabana-pie">
-            <div class="tarifa">Tarifa<strong>A consultar</strong></div>
-            <a href="#reservar" class="btn btn-linea" data-cabana="Cabaña Grande">Reservar</a>
+            <div class="tarifa"><span data-i18n="tarifa">Tarifa</span><strong data-i18n="aConsultar">A consultar</strong></div>
+            <a href="#reservar" class="btn btn-linea" data-cabana="Cabaña Grande" data-i18n="btnReservarCabana">Reservar</a>
           </div>
         </div>
       </div>
@@ -1048,19 +1065,19 @@
         </div>
         <div class="cabana-texto reveal">
           <span class="cabana-numero">Nº 02</span>
-          <h3>Cabina Pequeña</h3>
-          <p class="descripcion" id="txt-desc-pequena">Acogedora y romántica, pensada para dos. Madera por todos lados, ventana en el techo y una tina para relajarse.</p>
+          <h3 data-i18n="cabPequeNombre">Cabina Pequeña</h3>
+          <p class="descripcion" id="txt-desc-pequena" data-i18n="descPequena">Acogedora y romántica, pensada para dos. Madera por todos lados, ventana en el techo y una tina para relajarse.</p>
           <ul class="servicios">
-            <li>2 huéspedes</li>
-            <li>Baño privado con ducha</li>
-            <li>Cocina equipada</li>
-            <li>Tina de baño</li>
-            <li>Vista al bosque</li>
-            <li>Ideal para parejas</li>
+            <li data-i18n="pequeS1">2 huéspedes</li>
+            <li data-i18n="pequeS2">Baño privado con ducha</li>
+            <li data-i18n="pequeS3">Cocina equipada</li>
+            <li data-i18n="pequeS4">Tina de baño</li>
+            <li data-i18n="pequeS5">Vista al bosque</li>
+            <li data-i18n="pequeS6">Ideal para parejas</li>
           </ul>
           <div class="cabana-pie">
-            <div class="tarifa">Tarifa<strong>A consultar</strong></div>
-            <a href="#reservar" class="btn btn-linea" data-cabana="Cabina Pequeña">Reservar</a>
+            <div class="tarifa"><span data-i18n="tarifa">Tarifa</span><strong data-i18n="aConsultar">A consultar</strong></div>
+            <a href="#reservar" class="btn btn-linea" data-cabana="Cabina Pequeña" data-i18n="btnReservarCabana">Reservar</a>
           </div>
         </div>
       </div>
@@ -1071,9 +1088,9 @@
   <section class="seccion galeria-bg" id="galeria">
     <div class="wrap">
       <div class="centro reveal">
-        <span class="eyebrow">Galería</span>
-        <h2 class="titulo-seccion">Cada rincón</h2>
-        <p class="subtitulo">Toca una fotografía para verla completa.</p>
+        <span class="eyebrow" data-i18n="galEyebrow">Galería</span>
+        <h2 class="titulo-seccion" data-i18n="galTitulo">Cada rincón</h2>
+        <p class="subtitulo" data-i18n="galSub">Toca una fotografía para verla completa.</p>
       </div>
       <div class="galeria" id="grid-galeria"></div>
     </div>
@@ -1083,34 +1100,34 @@
   <section class="seccion" id="fauna">
     <div class="wrap">
       <div class="centro reveal">
-        <span class="eyebrow">Fauna del bosque</span>
-        <h2 class="titulo-seccion">Aves que te visitan</h2>
-        <p class="subtitulo">Tucanes, colibríes y cacaos recorren los árboles alrededor del refugio.</p>
+        <span class="eyebrow" data-i18n="faunaEyebrow">Fauna del bosque</span>
+        <h2 class="titulo-seccion" data-i18n="faunaTitulo">Aves que te visitan</h2>
+        <p class="subtitulo" data-i18n="faunaSub">Tucanes, colibríes y cacaos recorren los árboles alrededor del refugio.</p>
       </div>
       <div class="fauna-grid">
         <figure class="fauna-item reveal">
           <img src="ave-tucan.jpg" alt="Tucán de pico multicolor posado en una rama">
-          <figcaption>Tucán</figcaption>
+          <figcaption data-i18n="aveTucan">Tucán</figcaption>
         </figure>
         <figure class="fauna-item reveal">
           <img src="ave-colibri.jpg" alt="Colibrí verde sobre una rama">
-          <figcaption>Colibrí</figcaption>
+          <figcaption data-i18n="aveColibri">Colibrí</figcaption>
         </figure>
         <figure class="fauna-item reveal">
           <img src="ave-cucarachero.jpg" alt="Cucarachero asomándose entre el musgo de un tronco">
-          <figcaption>Cucarachero</figcaption>
+          <figcaption data-i18n="aveCucarachero">Cucarachero</figcaption>
         </figure>
         <figure class="fauna-item reveal">
           <img src="ave-perchada.jpg" alt="Ave de plumaje claro posada en una rama">
-          <figcaption>Ave del bosque</figcaption>
+          <figcaption data-i18n="aveBosque">Ave del bosque</figcaption>
         </figure>
         <figure class="fauna-item reveal">
           <img src="ave-rama-seca.jpg" alt="Ave posada en una rama seca contra el cielo">
-          <figcaption>Ave del bosque</figcaption>
+          <figcaption data-i18n="aveBosque">Ave del bosque</figcaption>
         </figure>
         <figure class="fauna-item reveal">
           <img src="ave-cacique.jpg" alt="Cacique negro con rabadilla roja entre el follaje">
-          <figcaption>Cacique</figcaption>
+          <figcaption data-i18n="aveCacique">Cacique</figcaption>
         </figure>
       </div>
     </div>
@@ -1120,9 +1137,9 @@
   <section class="seccion experiencias" id="experiencias">
     <div class="wrap">
       <div class="centro reveal">
-        <span class="eyebrow">Vive el bosque</span>
-        <h2 class="titulo-seccion">Más que un lugar para dormir</h2>
-        <p class="subtitulo">Noches frescas, fuego y paisaje para disfrutar sin prisa.</p>
+        <span class="eyebrow" data-i18n="expEyebrow">Vive el bosque</span>
+        <h2 class="titulo-seccion" data-i18n="expTitulo">Más que un lugar para dormir</h2>
+        <p class="subtitulo" data-i18n="expSub">Noches frescas, fuego y paisaje para disfrutar sin prisa.</p>
       </div>
 
       <div class="grid-exp">
@@ -1132,16 +1149,16 @@
             <path d="M24 26c-8 0-12-5-12-12 8 0 12 4 12 12z"/>
             <path d="M24 22c0-7 5-11 11-11 0 7-5 11-11 11z"/>
           </svg>
-          <h3>Senderos</h3>
-          <p>Caminatas tranquilas entre árboles y vegetación nativa.</p>
+          <h3 data-i18n="exp1T">Senderos</h3>
+          <p data-i18n="exp1P">Caminatas tranquilas entre árboles y vegetación nativa.</p>
         </div>
         <div class="exp-item reveal">
           <svg viewBox="0 0 48 48" aria-hidden="true">
             <path d="M24 6c2 6 8 9 8 18a8 8 0 0 1-16 0c0-4 2-6 3-8 1 3 2 4 4 4-1-5 0-9 1-14z"/>
             <path d="M14 42h20"/>
           </svg>
-          <h3>Fogón</h3>
-          <p>Noches frescas alrededor del fuego, con vista a la montaña.</p>
+          <h3 data-i18n="exp2T">Fogón</h3>
+          <p data-i18n="exp2P">Noches frescas alrededor del fuego, con vista a la montaña.</p>
         </div>
         <div class="exp-item reveal">
           <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -1149,8 +1166,8 @@
             <path d="M12 26V14a4 4 0 0 1 8 0"/>
             <path d="M16 40l-2 4M32 40l2 4"/>
           </svg>
-          <h3>Jacuzzi</h3>
-          <p>Un momento de descanso al final del día, rodeado de bosque.</p>
+          <h3 data-i18n="exp3T">Jacuzzi</h3>
+          <p data-i18n="exp3P">Un momento de descanso al final del día, rodeado de bosque.</p>
         </div>
       </div>
     </div>
@@ -1160,86 +1177,86 @@
   <section class="seccion" id="reservar">
     <div class="wrap reserva-wrap">
       <div class="reserva-texto reveal">
-        <span class="eyebrow sin-linea">Reservas</span>
-        <h2>Haz tu reserva</h2>
-        <p>Elige tu cabaña y tus fechas en el calendario. Te confirmaremos tu estadía por correo.</p>
+        <span class="eyebrow sin-linea" data-i18n="resEyebrow">Reservas</span>
+        <h2 data-i18n="resTitulo">Haz tu reserva</h2>
+        <p data-i18n="resP">Elige tu cabaña y tus fechas en el calendario. Te confirmaremos tu estadía por correo.</p>
         <ul class="reserva-lista">
-          <li>Confirmación personalizada por correo</li>
-          <li>Atención directa del equipo del refugio</li>
-          <li>Cancelación según las políticas de cada cabaña</li>
+          <li data-i18n="resL1">Confirmación personalizada por correo</li>
+          <li data-i18n="resL2">Atención directa del equipo del refugio</li>
+          <li data-i18n="resL3">Cancelación según las políticas de cada cabaña</li>
         </ul>
       </div>
 
       <div class="reserva-box reveal">
         <form id="form-reserva">
           <div class="campo">
-            <label for="cabana">Cabaña</label>
+            <label for="cabana" data-i18n="lblCabana">Cabaña</label>
             <select id="cabana" required>
-              <option value="">Selecciona una cabaña</option>
-              <option value="Cabaña Grande">Cabaña Grande · hasta 8 personas</option>
-              <option value="Cabina Pequeña">Cabina Pequeña · 2 personas</option>
+              <option value="" data-i18n="optElige">Selecciona una cabaña</option>
+              <option value="Cabaña Grande" data-i18n="optGrande">Cabaña Grande · hasta 8 personas</option>
+              <option value="Cabina Pequeña" data-i18n="optPequena">Cabina Pequeña · 2 personas</option>
             </select>
           </div>
 
           <!-- Calendario de disponibilidad -->
-          <div class="calendario" aria-label="Calendario de disponibilidad">
+          <div class="calendario" data-i18n-aria="calAria" aria-label="Calendario de disponibilidad">
             <div class="cal-cabecera">
               <div class="cal-mes" id="cal-mes"></div>
               <div class="cal-nav">
-                <button type="button" id="cal-anterior" aria-label="Mes anterior">‹</button>
-                <button type="button" id="cal-siguiente" aria-label="Mes siguiente">›</button>
+                <button type="button" id="cal-anterior" data-i18n-aria="calAnteriorAria" aria-label="Mes anterior">‹</button>
+                <button type="button" id="cal-siguiente" data-i18n-aria="calSiguienteAria" aria-label="Mes siguiente">›</button>
               </div>
             </div>
             <div class="cal-grid" id="cal-grid"></div>
             <div class="cal-leyenda">
-              <span><i class="l-libre"></i>Disponible</span>
-              <span><i class="l-ocupado"></i>Reservado</span>
-              <span><i class="l-pendiente"></i>Pendiente</span>
-              <span><i class="l-seleccion"></i>Tu estadía</span>
+              <span><i class="l-libre"></i><span data-i18n="legLibre">Disponible</span></span>
+              <span><i class="l-ocupado"></i><span data-i18n="legOcupado">Reservado</span></span>
+              <span><i class="l-pendiente"></i><span data-i18n="legPendiente">Pendiente</span></span>
+              <span><i class="l-seleccion"></i><span data-i18n="legSeleccion">Tu estadía</span></span>
             </div>
             <div class="cal-resumen" id="cal-resumen" aria-live="polite"></div>
           </div>
 
           <div class="fila">
             <div class="campo">
-              <label for="entrada">Entrada</label>
+              <label for="entrada" data-i18n="lblEntrada">Entrada</label>
               <input type="date" id="entrada" required>
             </div>
             <div class="campo">
-              <label for="salida">Salida</label>
+              <label for="salida" data-i18n="lblSalida">Salida</label>
               <input type="date" id="salida" required>
             </div>
           </div>
 
           <div class="campo">
-            <label for="personas">Personas</label>
+            <label for="personas" data-i18n="lblPersonas">Personas</label>
             <input type="number" id="personas" min="1" max="8" value="2" required>
           </div>
 
           <div class="fila">
             <div class="campo">
-              <label for="nombre">Nombre completo</label>
+              <label for="nombre" data-i18n="lblNombre">Nombre completo</label>
               <input type="text" id="nombre" required maxlength="120">
             </div>
             <div class="campo">
-              <label for="telefono">Teléfono</label>
+              <label for="telefono" data-i18n="lblTelefono">Teléfono</label>
               <input type="tel" id="telefono" required maxlength="30">
             </div>
           </div>
 
           <div class="campo">
-            <label for="correo">Correo electrónico</label>
+            <label for="correo" data-i18n="lblCorreo">Correo electrónico</label>
             <input type="email" id="correo" required maxlength="120">
           </div>
 
           <div class="campo">
-            <label for="notas">Comentarios (opcional)</label>
+            <label for="notas" data-i18n="lblNotas">Comentarios (opcional)</label>
             <textarea id="notas" maxlength="1000"></textarea>
           </div>
 
-          <button type="submit" class="btn btn-enviar" id="boton-enviar">Enviar solicitud</button>
+          <button type="submit" class="btn btn-enviar" id="boton-enviar" data-i18n="btnEnviar">Enviar solicitud</button>
 
-          <div class="mensaje" id="mensaje" role="status">
+          <div class="mensaje" id="mensaje" role="status" data-i18n="msgGracias">
             Gracias. Recibimos tu solicitud y te escribiremos pronto para confirmar tu estadía.
           </div>
         </form>
@@ -1251,23 +1268,23 @@
   <section class="seccion" id="contacto">
     <div class="wrap">
       <div class="centro reveal">
-        <span class="eyebrow">Contacto</span>
-        <h2 class="titulo-seccion">Hablemos</h2>
-        <p class="subtitulo">¿Tienes alguna pregunta antes de reservar? Con gusto te ayudamos.</p>
+        <span class="eyebrow" data-i18n="conEyebrow">Contacto</span>
+        <h2 class="titulo-seccion" data-i18n="conTitulo">Hablemos</h2>
+        <p class="subtitulo" data-i18n="conSub">¿Tienes alguna pregunta antes de reservar? Con gusto te ayudamos.</p>
       </div>
 
       <div class="contacto-grid">
         <div class="contacto-item reveal">
-          <span class="etiqueta">Ubicación</span>
-          <p id="txt-ubicacion">Refugio NELARY, Costa Rica</p>
+          <span class="etiqueta" data-i18n="etiUbicacion">Ubicación</span>
+          <p id="txt-ubicacion" data-i18n="ubicacion">Refugio NELARY, Costa Rica</p>
         </div>
         <div class="contacto-item reveal">
-          <span class="etiqueta">Teléfono</span>
-          <p id="txt-telefono">0000-0000</p>
+          <span class="etiqueta" data-i18n="etiTelefono">Teléfono</span>
+          <p id="txt-telefono" data-i18n="telefono">0000-0000</p>
         </div>
         <div class="contacto-item reveal">
-          <span class="etiqueta">Correo</span>
-          <p id="txt-correo">correo@refugionelary.com</p>
+          <span class="etiqueta" data-i18n="etiCorreo">Correo</span>
+          <p id="txt-correo" data-i18n="correo">correo@refugionelary.com</p>
         </div>
       </div>
     </div>
@@ -1275,19 +1292,19 @@
 
   <footer>
     <img class="logo-footer" src="logo-nelary.png" alt="NELARY">
-    <p>Refugio en el bosque · Costa Rica</p>
-    <p class="pie">© 2026 Refugio NELARY. Todos los derechos reservados.</p>
+    <p data-i18n="footTagline">Refugio en el bosque · Costa Rica</p>
+    <p class="pie" data-i18n="footCopy">© 2026 Refugio NELARY. Todos los derechos reservados.</p>
   </footer>
 
   <!-- BOTÓN FIJO EN CELULAR -->
-  <a href="#reservar" class="reservar-movil">Reservar</a>
+  <a href="#reservar" class="reservar-movil" data-i18n="btnMovil">Reservar</a>
 
   <!-- VISOR -->
-  <div class="visor" id="visor" role="dialog" aria-modal="true" aria-label="Galería">
-    <button type="button" class="visor-btn" id="cerrar-visor" aria-label="Cerrar">×</button>
-    <button type="button" class="visor-btn" id="anterior" aria-label="Foto anterior">‹</button>
+  <div class="visor" id="visor" role="dialog" aria-modal="true" data-i18n-aria="visorAria" aria-label="Galería">
+    <button type="button" class="visor-btn" id="cerrar-visor" data-i18n-aria="cerrar" aria-label="Cerrar">×</button>
+    <button type="button" class="visor-btn" id="anterior" data-i18n-aria="anterior" aria-label="Foto anterior">‹</button>
     <img id="visor-img" src="" alt="">
-    <button type="button" class="visor-btn" id="siguiente" aria-label="Foto siguiente">›</button>
+    <button type="button" class="visor-btn" id="siguiente" data-i18n-aria="siguiente" aria-label="Foto siguiente">›</button>
     <div class="visor-contador" id="contador"></div>
   </div>
 
@@ -1300,6 +1317,8 @@
       getDoc,
       getDocs,
       addDoc,
+      query,
+      orderBy,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -1322,30 +1341,317 @@
     const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 2 };
 
     /* =========================================================
+       IDIOMA
+       Los nombres de cabaña que se guardan en Firestore siempre
+       se mantienen en español; solo cambia lo que se muestra.
+       ========================================================= */
+    const T = {
+      es: {
+        tituloPagina: "Refugio NELARY | Cabañas en el bosque",
+        navCabanas: "Cabañas",
+        navGaleria: "Galería",
+        navExperiencias: "Experiencias",
+        navContacto: "Contacto",
+        navReservar: "Reservar",
+        heroEyebrow: "Refugio en el bosque · Costa Rica",
+        heroTexto: "Cabañas entre la montaña y el bosque, para descansar en pareja, en familia o con amigos.",
+        heroBtn: "Reservar ahora",
+        introTexto: "Un refugio de madera con <em>vistas a la montaña</em>, fogón bajo las estrellas, jacuzzi y el silencio del bosque.",
+        cabEyebrow: "Nuestras cabañas",
+        cabTitulo: "Elige tu espacio",
+        cabSub: "Cada cabaña tiene su propio carácter y su propia privacidad.",
+        cabGrandeNombre: "Cabaña Grande",
+        descGrande: "Espacio amplio para hasta 8 personas, con sala de sillones, cocina equipada, dos baños completos y jacuzzi recién instalado.",
+        grandeS1: "Hasta 8 huéspedes",
+        grandeS2: "2 baños completos",
+        grandeS3: "Cocina equipada",
+        grandeS4: "Jacuzzi",
+        grandeS5: "Fogón al aire libre",
+        grandeS6: "Vista a la montaña",
+        cabPequeNombre: "Cabina Pequeña",
+        descPequena: "Acogedora y romántica, pensada para dos. Madera por todos lados, ventana en el techo y una tina para relajarse.",
+        pequeS1: "2 huéspedes",
+        pequeS2: "Baño privado con ducha",
+        pequeS3: "Cocina equipada",
+        pequeS4: "Tina de baño",
+        pequeS5: "Vista al bosque",
+        pequeS6: "Ideal para parejas",
+        tarifa: "Tarifa",
+        aConsultar: "A consultar",
+        btnReservarCabana: "Reservar",
+        galEyebrow: "Galería",
+        galTitulo: "Cada rincón",
+        galSub: "Toca una fotografía para verla completa.",
+        verFoto: "Ver foto: ",
+        faunaEyebrow: "Fauna del bosque",
+        faunaTitulo: "Aves que te visitan",
+        faunaSub: "Tucanes, colibríes y cacaos recorren los árboles alrededor del refugio.",
+        aveTucan: "Tucán",
+        aveColibri: "Colibrí",
+        aveCucarachero: "Cucarachero",
+        aveBosque: "Ave del bosque",
+        aveCacique: "Cacique",
+        expEyebrow: "Vive el bosque",
+        expTitulo: "Más que un lugar para dormir",
+        expSub: "Noches frescas, fuego y paisaje para disfrutar sin prisa.",
+        exp1T: "Senderos",
+        exp1P: "Caminatas tranquilas entre árboles y vegetación nativa.",
+        exp2T: "Fogón",
+        exp2P: "Noches frescas alrededor del fuego, con vista a la montaña.",
+        exp3T: "Jacuzzi",
+        exp3P: "Un momento de descanso al final del día, rodeado de bosque.",
+        resEyebrow: "Reservas",
+        resTitulo: "Haz tu reserva",
+        resP: "Elige tu cabaña y tus fechas en el calendario. Te confirmaremos tu estadía por correo.",
+        resL1: "Confirmación personalizada por correo",
+        resL2: "Atención directa del equipo del refugio",
+        resL3: "Cancelación según las políticas de cada cabaña",
+        lblCabana: "Cabaña",
+        optElige: "Selecciona una cabaña",
+        optGrande: "Cabaña Grande · hasta 8 personas",
+        optPequena: "Cabina Pequeña · 2 personas",
+        calAria: "Calendario de disponibilidad",
+        calAnteriorAria: "Mes anterior",
+        calSiguienteAria: "Mes siguiente",
+        legLibre: "Disponible",
+        legOcupado: "Reservado",
+        legPendiente: "Pendiente",
+        legSeleccion: "Tu estadía",
+        lblEntrada: "Entrada",
+        lblSalida: "Salida",
+        lblPersonas: "Personas",
+        lblNombre: "Nombre completo",
+        lblTelefono: "Teléfono",
+        lblCorreo: "Correo electrónico",
+        lblNotas: "Comentarios (opcional)",
+        btnEnviar: "Enviar solicitud",
+        enviando: "Enviando…",
+        msgGracias: "Gracias. Recibimos tu solicitud y te escribiremos pronto para confirmar tu estadía.",
+        msgNoVerificar: "No pudimos verificar la disponibilidad. Recargue la página o escríbanos directamente.",
+        msgFechas: "Elija la fecha de entrada y la de salida en el calendario.",
+        msgNoDisp: "Algunas de esas noches ya no están disponibles. Elija otras fechas.",
+        msgErrorEnvio: "No pudimos enviar tu solicitud. Intente de nuevo en unos minutos.",
+        diasCortos: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
+        calElige: "Elige una cabaña para ver sus fechas disponibles.",
+        calCargando: "Cargando disponibilidad…",
+        calError: "No pudimos cargar la disponibilidad. Recargue la página o escríbanos.",
+        calToca: "Toca la fecha de entrada.",
+        calEntrada: (f) => "Entrada: " + f + ". Ahora elige la fecha de salida.",
+        calResumen: (n, desde, hasta) => (n === 1 ? "1 noche" : n + " noches") + " · del " + desde + " al " + hasta,
+        conEyebrow: "Contacto",
+        conTitulo: "Hablemos",
+        conSub: "¿Tienes alguna pregunta antes de reservar? Con gusto te ayudamos.",
+        etiUbicacion: "Ubicación",
+        etiTelefono: "Teléfono",
+        etiCorreo: "Correo",
+        ubicacion: "Refugio NELARY, Costa Rica",
+        telefono: "0000-0000",
+        correo: "correo@refugionelary.com",
+        footTagline: "Refugio en el bosque · Costa Rica",
+        footCopy: "© 2026 Refugio NELARY. Todos los derechos reservados.",
+        btnMovil: "Reservar",
+        cerrar: "Cerrar",
+        anterior: "Foto anterior",
+        siguiente: "Foto siguiente",
+        visorAria: "Galería"
+      },
+      en: {
+        tituloPagina: "NELARY Refuge | Forest cabins",
+        navCabanas: "Cabins",
+        navGaleria: "Gallery",
+        navExperiencias: "Experiences",
+        navContacto: "Contact",
+        navReservar: "Book",
+        heroEyebrow: "Forest refuge · Costa Rica",
+        heroTexto: "Cabins between the mountain and the forest, to rest as a couple, with family or with friends.",
+        heroBtn: "Book now",
+        introTexto: "A wooden refuge with <em>mountain views</em>, a fire pit under the stars, a jacuzzi and the quiet of the forest.",
+        cabEyebrow: "Our cabins",
+        cabTitulo: "Choose your space",
+        cabSub: "Each cabin has its own character and its own privacy.",
+        cabGrandeNombre: "Large Cabin",
+        descGrande: "Spacious for up to 8 guests, with a sofa lounge, an equipped kitchen, two full bathrooms and a newly installed jacuzzi.",
+        grandeS1: "Up to 8 guests",
+        grandeS2: "2 full bathrooms",
+        grandeS3: "Equipped kitchen",
+        grandeS4: "Jacuzzi",
+        grandeS5: "Outdoor fire pit",
+        grandeS6: "Mountain view",
+        cabPequeNombre: "Small Cabin",
+        descPequena: "Cozy and romantic, made for two. Wood everywhere, a skylight and a bathtub to relax in.",
+        pequeS1: "2 guests",
+        pequeS2: "Private bathroom with shower",
+        pequeS3: "Equipped kitchen",
+        pequeS4: "Bathtub",
+        pequeS5: "Forest view",
+        pequeS6: "Ideal for couples",
+        tarifa: "Rate",
+        aConsultar: "On request",
+        btnReservarCabana: "Book",
+        galEyebrow: "Gallery",
+        galTitulo: "Every corner",
+        galSub: "Tap a photo to view it in full.",
+        verFoto: "View photo: ",
+        faunaEyebrow: "Forest wildlife",
+        faunaTitulo: "Birds that visit you",
+        faunaSub: "Toucans, hummingbirds and wrens move through the trees around the refuge.",
+        aveTucan: "Toucan",
+        aveColibri: "Hummingbird",
+        aveCucarachero: "Wren",
+        aveBosque: "Forest bird",
+        aveCacique: "Cacique",
+        expEyebrow: "Live the forest",
+        expTitulo: "More than a place to sleep",
+        expSub: "Cool nights, fire and scenery to enjoy at your own pace.",
+        exp1T: "Trails",
+        exp1P: "Peaceful walks among trees and native vegetation.",
+        exp2T: "Fire pit",
+        exp2P: "Cool nights around the fire, with mountain views.",
+        exp3T: "Jacuzzi",
+        exp3P: "A moment of rest at the end of the day, surrounded by forest.",
+        resEyebrow: "Reservations",
+        resTitulo: "Make your reservation",
+        resP: "Choose your cabin and dates on the calendar. We will confirm your stay by email.",
+        resL1: "Personal confirmation by email",
+        resL2: "Direct attention from the refuge team",
+        resL3: "Cancellation according to each cabin's policy",
+        lblCabana: "Cabin",
+        optElige: "Select a cabin",
+        optGrande: "Large Cabin · up to 8 guests",
+        optPequena: "Small Cabin · 2 guests",
+        calAria: "Availability calendar",
+        calAnteriorAria: "Previous month",
+        calSiguienteAria: "Next month",
+        legLibre: "Available",
+        legOcupado: "Booked",
+        legPendiente: "Pending",
+        legSeleccion: "Your stay",
+        lblEntrada: "Check-in",
+        lblSalida: "Check-out",
+        lblPersonas: "Guests",
+        lblNombre: "Full name",
+        lblTelefono: "Phone",
+        lblCorreo: "Email",
+        lblNotas: "Comments (optional)",
+        btnEnviar: "Send request",
+        enviando: "Sending…",
+        msgGracias: "Thank you. We received your request and will write to you soon to confirm your stay.",
+        msgNoVerificar: "We could not verify availability. Reload the page or write to us directly.",
+        msgFechas: "Choose your check-in and check-out dates on the calendar.",
+        msgNoDisp: "Some of those nights are no longer available. Please choose other dates.",
+        msgErrorEnvio: "We could not send your request. Please try again in a few minutes.",
+        diasCortos: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        calElige: "Choose a cabin to see its available dates.",
+        calCargando: "Loading availability…",
+        calError: "We could not load availability. Reload the page or write to us.",
+        calToca: "Tap your check-in date.",
+        calEntrada: (f) => "Check-in: " + f + ". Now choose your check-out date.",
+        calResumen: (n, desde, hasta) => (n === 1 ? "1 night" : n + " nights") + " · from " + desde + " to " + hasta,
+        conEyebrow: "Contact",
+        conTitulo: "Let's talk",
+        conSub: "Do you have any questions before booking? We're happy to help.",
+        etiUbicacion: "Location",
+        etiTelefono: "Phone",
+        etiCorreo: "Email",
+        ubicacion: "NELARY Refuge, Costa Rica",
+        telefono: "0000-0000",
+        correo: "correo@refugionelary.com",
+        footTagline: "Forest refuge · Costa Rica",
+        footCopy: "© 2026 NELARY Refuge. All rights reserved.",
+        btnMovil: "Book",
+        cerrar: "Close",
+        anterior: "Previous photo",
+        siguiente: "Next photo",
+        visorAria: "Gallery"
+      }
+    };
+
+    let idioma = "es";
+    try {
+      idioma = localStorage.getItem("nelary-idioma") === "en" ? "en" : "es";
+    } catch (error) {
+      idioma = "es";
+    }
+
+    function t(clave) {
+      const diccionario = T[idioma];
+      const valor = diccionario[clave] !== undefined ? diccionario[clave] : T.es[clave];
+      return valor;
+    }
+
+    function localeActual() {
+      return idioma === "en" ? "en-US" : "es-CR";
+    }
+
+    // Campos de Firestore que tienen versión en inglés (sufijo "En")
+    const CAMPOS_FIRESTORE = {
+      "txt-hero": "heroTexto",
+      "txt-intro": "introTexto",
+      "txt-desc-grande": "descGrande",
+      "txt-desc-pequena": "descPequena",
+      "txt-ubicacion": "ubicacion",
+      "txt-telefono": "telefono",
+      "txt-correo": "correo"
+    };
+    const BILINGUES = ["heroTexto", "introTexto", "descGrande", "descPequena", "ubicacion"];
+
+    let contenidoSitio = null;
+
+    function aplicarTextosFirestore() {
+      if (!contenidoSitio) return;
+      Object.keys(CAMPOS_FIRESTORE).forEach(function (id) {
+        const campo = CAMPOS_FIRESTORE[id];
+        const usaEn = idioma === "en" && BILINGUES.indexOf(campo) !== -1;
+        const valor = usaEn ? contenidoSitio[campo + "En"] : contenidoSitio[campo];
+        if (valor) document.getElementById(id).textContent = valor;
+      });
+    }
+
+    const btnIdioma = document.getElementById("btn-idioma");
+
+    function aplicarIdioma() {
+      document.documentElement.lang = idioma;
+      document.title = t("tituloPagina");
+
+      document.querySelectorAll("[data-i18n]").forEach(function (el) {
+        el.textContent = t(el.dataset.i18n);
+      });
+      document.querySelectorAll("[data-i18n-html]").forEach(function (el) {
+        el.innerHTML = t(el.dataset.i18nHtml);
+      });
+      document.querySelectorAll("[data-i18n-aria]").forEach(function (el) {
+        el.setAttribute("aria-label", t(el.dataset.i18nAria));
+      });
+
+      btnIdioma.textContent = idioma === "es" ? "EN" : "ES";
+      btnIdioma.setAttribute("aria-label", idioma === "es" ? "View in English" : "Ver en español");
+
+      aplicarTextosFirestore();
+      renderCalendario();
+    }
+
+    btnIdioma.addEventListener("click", function () {
+      idioma = idioma === "es" ? "en" : "es";
+      try {
+        localStorage.setItem("nelary-idioma", idioma);
+      } catch (error) {
+        console.warn("No se pudo guardar el idioma:", error);
+      }
+      mensaje.classList.remove("visible", "error");
+      aplicarIdioma();
+    });
+
+    /* =========================================================
        TEXTOS DEL SITIO (desde Firestore, documento config/sitio)
        Si el documento no existe o falla la conexión, se muestran
-       los textos escritos en esta página.
+       los textos por defecto.
        ========================================================= */
     async function cargarTextos() {
       try {
         const snap = await getDoc(doc(db, "config", "sitio"));
         if (!snap.exists()) return;
-
-        const c = snap.data();
-        const textos = {
-          "txt-hero": c.heroTexto,
-          "txt-intro": c.introTexto,
-          "txt-desc-grande": c.descGrande,
-          "txt-desc-pequena": c.descPequena,
-          "txt-ubicacion": c.ubicacion,
-          "txt-telefono": c.telefono,
-          "txt-correo": c.correo
-        };
-
-        Object.keys(textos).forEach(function (id) {
-          const el = document.getElementById(id);
-          if (el && textos[id]) el.textContent = textos[id];
-        });
+        contenidoSitio = snap.data();
+        aplicarTextosFirestore();
       } catch (error) {
         console.warn("Se muestran los textos por defecto:", error);
       }
@@ -1372,7 +1678,7 @@
     }
 
     function formatoCorto(texto) {
-      return fechaDesdeTexto(texto).toLocaleDateString("es-CR", { day: "numeric", month: "short" });
+      return fechaDesdeTexto(texto).toLocaleDateString(localeActual(), { day: "numeric", month: "short" });
     }
 
     const hoy = new Date();
@@ -1473,12 +1779,12 @@
       const anio = mesVisible.getFullYear();
       const mes = mesVisible.getMonth();
 
-      calMes.textContent = mesVisible.toLocaleDateString("es-CR", { month: "long", year: "numeric" });
+      calMes.textContent = mesVisible.toLocaleDateString(localeActual(), { month: "long", year: "numeric" });
       calAnterior.disabled = mesVisible <= new Date(hoy.getFullYear(), hoy.getMonth(), 1);
 
       calGrid.innerHTML = "";
 
-      ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].forEach(function (nombre) {
+      t("diasCortos").forEach(function (nombre) {
         const celda = document.createElement("div");
         celda.className = "cal-dia-nombre";
         celda.textContent = nombre;
@@ -1521,19 +1827,18 @@
 
       // Resumen
       if (!cabana) {
-        calResumen.textContent = "Elige una cabaña para ver sus fechas disponibles.";
+        calResumen.textContent = t("calElige");
       } else if (estadoDisponibilidad === "cargando") {
-        calResumen.textContent = "Cargando disponibilidad…";
+        calResumen.textContent = t("calCargando");
       } else if (estadoDisponibilidad === "error") {
-        calResumen.textContent = "No pudimos cargar la disponibilidad. Recargue la página o escríbanos.";
+        calResumen.textContent = t("calError");
       } else if (entradaSel && salidaSel) {
         const noches = Math.round((fechaDesdeTexto(salidaSel) - fechaDesdeTexto(entradaSel)) / 86400000);
-        calResumen.textContent = noches + (noches === 1 ? " noche" : " noches") +
-          " · del " + formatoCorto(entradaSel) + " al " + formatoCorto(salidaSel);
+        calResumen.textContent = t("calResumen")(noches, formatoCorto(entradaSel), formatoCorto(salidaSel));
       } else if (entradaSel) {
-        calResumen.textContent = "Entrada: " + formatoCorto(entradaSel) + ". Ahora elige la fecha de salida.";
+        calResumen.textContent = t("calEntrada")(formatoCorto(entradaSel));
       } else {
-        calResumen.textContent = "Toca la fecha de entrada.";
+        calResumen.textContent = t("calToca");
       }
     }
 
@@ -1613,18 +1918,18 @@
       limpiarMensaje();
 
       if (estadoDisponibilidad !== "ok") {
-        mostrarMensaje("No pudimos verificar la disponibilidad. Recargue la página o escríbanos directamente.", true);
+        mostrarMensaje(t("msgNoVerificar"), true);
         return;
       }
 
       if (!entradaSel || !salidaSel) {
-        mostrarMensaje("Elija la fecha de entrada y la de salida en el calendario.", true);
+        mostrarMensaje(t("msgFechas"), true);
         return;
       }
 
       // Verifica de nuevo la disponibilidad antes de guardar
       if (hayBloqueoEntre(entradaSel, salidaSel)) {
-        mostrarMensaje("Algunas de esas noches ya no están disponibles. Elija otras fechas.", true);
+        mostrarMensaje(t("msgNoDisp"), true);
         await cargarDisponibilidad();
         return;
       }
@@ -1644,7 +1949,7 @@
 
       botonEnviar.disabled = true;
       const textoOriginal = botonEnviar.textContent;
-      botonEnviar.textContent = "Enviando…";
+      botonEnviar.textContent = t("enviando");
 
       try {
         await addDoc(collection(db, "solicitudes"), datos);
@@ -1655,24 +1960,22 @@
         personasInput.max = MAX_PERSONAS[cabanaSelect.value] || 8;
         sincronizarInputs();
         renderCalendario();
-        mostrarMensaje("Gracias. Recibimos tu solicitud y te escribiremos pronto para confirmar tu estadía.");
+        mostrarMensaje(t("msgGracias"));
       } catch (error) {
         console.error("No se pudo enviar la solicitud:", error);
-        mostrarMensaje("No pudimos enviar tu solicitud. Intente de nuevo en unos minutos.", true);
+        mostrarMensaje(t("msgErrorEnvio"), true);
       } finally {
         botonEnviar.disabled = false;
         botonEnviar.textContent = textoOriginal;
       }
     });
 
-    sincronizarInputs();
-    cargarTextos();
-    cargarDisponibilidad();
-
     /* =========================================================
        GALERÍA
+       Lee la colección "galeria" de Firestore (ordenada por "orden").
+       Si está vacía o falla la conexión, muestra las fotos originales.
        ========================================================= */
-    const fotos = [
+    const FOTOS_RESPALDO = [
       { src: "fachada-noche.jpg", alt: "Cabaña grande de noche con luces, vista al valle", clase: "ancha" },
       { src: "fachada-fogon.jpg", alt: "Fachada de la cabaña grande con fogón encendido", clase: "alta" },
       { src: "vista-ventana.jpg", alt: "Vista desde la ventana hacia el bosque y la montaña", clase: "alta" },
@@ -1698,23 +2001,54 @@
     const visor = document.getElementById("visor");
     const visorImg = document.getElementById("visor-img");
     const contador = document.getElementById("contador");
+    let fotos = [];
     let indiceActual = 0;
 
-    fotos.forEach(function (foto, i) {
-      const boton = document.createElement("button");
-      boton.type = "button";
-      if (foto.clase) boton.className = foto.clase;
-      boton.setAttribute("aria-label", "Ver foto: " + foto.alt);
+    // Pide a Cloudinary una versión optimizada de la foto
+    function versionOptimizada(url) {
+      return url.indexOf("/upload/") !== -1
+        ? url.replace("/upload/", "/upload/f_auto,q_auto,w_1600/")
+        : url;
+    }
 
-      const img = document.createElement("img");
-      img.src = foto.src;
-      img.alt = foto.alt;
-      img.loading = "lazy";
+    async function cargarGaleria() {
+      try {
+        const snap = await getDocs(query(collection(db, "galeria"), orderBy("orden")));
+        if (snap.empty) return FOTOS_RESPALDO;
+        return snap.docs.map(function (d) {
+          const f = d.data();
+          return {
+            src: versionOptimizada(f.url),
+            alt: f.descripcion || "Fotografía del refugio",
+            clase: f.clase || ""
+          };
+        });
+      } catch (error) {
+        console.warn("Se muestran las fotos por defecto:", error);
+        return FOTOS_RESPALDO;
+      }
+    }
 
-      boton.appendChild(img);
-      boton.addEventListener("click", function () { abrirVisor(i); });
-      grid.appendChild(boton);
-    });
+    function pintarGaleria(lista) {
+      fotos = lista;
+      grid.textContent = "";
+
+      fotos.forEach(function (foto, i) {
+        const boton = document.createElement("button");
+        boton.type = "button";
+        if (foto.clase) boton.className = foto.clase;
+        boton.setAttribute("aria-label", t("verFoto") + foto.alt);
+
+        const img = document.createElement("img");
+        img.src = foto.src;
+        img.alt = foto.alt;
+        img.loading = "lazy";
+
+        boton.appendChild(img);
+        boton.addEventListener("click", function () { abrirVisor(i); });
+        grid.appendChild(boton);
+      });
+    }
 
     function mostrarFoto(i) {
       indiceActual = (i + fotos.length) % fotos.length;
@@ -1781,6 +2115,14 @@
     }, { threshold: 0.12 });
 
     document.querySelectorAll(".reveal").forEach(function (el) { observador.observe(el); });
+
+    /* =========================================================
+       ARRANQUE
+       ========================================================= */
+    aplicarIdioma();
+    cargarTextos();
+    cargarDisponibilidad();
+    cargarGaleria().then(pintarGaleria);
   </script>
 
 </body>
