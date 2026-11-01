@@ -39,14 +39,16 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    h1, h3 {
+    h1, h2, h3 {
       font-family: var(--serif);
       font-weight: 500;
       color: var(--verde);
       line-height: 1.15;
     }
 
-    button, input, select { font-family: inherit; }
+    button, input, select, textarea { font-family: inherit; }
+
+    [hidden] { display: none !important; }
 
     /* ---------- CABECERA ---------- */
     header {
@@ -78,8 +80,6 @@
       cursor: pointer;
     }
 
-    .btn-salir[hidden] { display: none; }
-
     /* ---------- LOGIN ---------- */
     .login {
       max-width: 400px;
@@ -88,7 +88,7 @@
     }
 
     .login h1 { font-size: 2rem; margin-bottom: 8px; }
-    .login p.ayuda { color: var(--gris); margin-bottom: 28px; font-size: 0.92rem; }
+    .ayuda { color: var(--gris); font-size: 0.9rem; }
 
     form { display: grid; gap: 22px; }
 
@@ -102,7 +102,7 @@
       font-weight: 500;
     }
 
-    input, select {
+    input, select, textarea {
       width: 100%;
       padding: 12px 0;
       border: none;
@@ -113,7 +113,9 @@
       border-radius: 0;
     }
 
-    input:focus, select:focus { outline: none; border-bottom-color: var(--dorado); }
+    textarea { resize: vertical; min-height: 70px; }
+
+    input:focus, select:focus, textarea:focus { outline: none; border-bottom-color: var(--dorado); }
 
     .btn {
       background: var(--verde);
@@ -140,15 +142,14 @@
     .panel {
       max-width: 860px;
       margin: 0 auto;
-      padding: 28px 22px 60px;
+      padding: 24px 22px 60px;
     }
 
-    /* Pestañas */
     .tabs {
       display: flex;
       border-bottom: 1px solid var(--crema-oscuro);
       margin-bottom: 26px;
-      gap: 4px;
+      overflow-x: auto;
     }
 
     .tab {
@@ -161,46 +162,82 @@
       color: var(--gris);
       cursor: pointer;
       border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
+      white-space: nowrap;
     }
 
-    .tab.activa {
+    .tab.activo {
       color: var(--verde);
       border-bottom-color: var(--dorado);
-      font-weight: 500;
     }
 
     .barra {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
       flex-wrap: wrap;
-      margin-bottom: 26px;
+      margin-bottom: 24px;
     }
 
     .barra h1 { font-size: 1.9rem; }
 
+    .barra .controles { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
     .barra select {
       width: auto;
-      min-width: 180px;
+      min-width: 160px;
       padding: 10px 26px 10px 0;
       border-bottom: 1px solid var(--dorado);
       cursor: pointer;
     }
 
-    .btn-linea {
-      background: transparent;
-      color: var(--verde);
-      border: 1px solid var(--verde);
-      padding: 10px 14px;
-      font-size: 0.68rem;
+    .btn-nueva {
+      background: var(--verde);
+      color: var(--blanco);
+      border: none;
+      padding: 12px 18px;
+      font-size: 0.7rem;
       letter-spacing: 1.5px;
       text-transform: uppercase;
       cursor: pointer;
     }
 
-    .btn-linea:hover { background: var(--crema); }
+    .btn-nueva:hover { background: var(--verde-claro); }
+
+    .formulario {
+      background: var(--blanco);
+      border: 1px solid var(--dorado);
+      padding: 26px 24px;
+      margin-bottom: 26px;
+    }
+
+    .formulario h2 { font-size: 1.5rem; margin-bottom: 18px; }
+
+    .fila2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    .acciones-form { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .acciones-form button {
+      padding: 14px 20px;
+      font-size: 0.7rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: 1px solid var(--verde);
+      background: var(--verde);
+      color: var(--blanco);
+    }
+
+    .acciones-form button.sec {
+      background: transparent;
+      color: var(--verde);
+    }
+
+    .acciones-form button:disabled { opacity: 0.5; cursor: wait; }
 
     .tarjeta {
       background: var(--blanco);
@@ -225,11 +262,6 @@
       color: var(--dorado-oscuro);
     }
 
-    .fecha-bit {
-      font-size: 0.75rem;
-      color: var(--gris);
-    }
-
     .estado {
       font-size: 0.66rem;
       letter-spacing: 1.5px;
@@ -240,6 +272,8 @@
 
     .estado.nueva { color: var(--dorado-oscuro); background: #F8F1DE; }
     .estado.confirmada { color: var(--verde); background: #E4EDE6; }
+    .estado.completada { color: var(--verde-claro); background: #EEF4EF; }
+    .estado.bloqueada { color: var(--gris); background: #ECE7DC; }
     .estado.rechazada, .estado.cancelada { color: var(--rojo); background: var(--rojo-fondo); }
 
     .tarjeta h3 { font-size: 1.5rem; margin-bottom: 6px; }
@@ -256,21 +290,6 @@
       margin-top: 8px;
       padding-left: 12px;
       border-left: 2px solid var(--crema-oscuro);
-    }
-
-    .fotos-bit {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 12px;
-    }
-
-    .fotos-bit img {
-      width: 96px;
-      height: 96px;
-      object-fit: cover;
-      display: block;
-      border: 1px solid var(--crema-oscuro);
     }
 
     .acciones {
@@ -300,6 +319,35 @@
 
     .acciones button:disabled { opacity: 0.5; cursor: wait; }
 
+    .historial-box { margin-top: 14px; }
+
+    .historial {
+      list-style: none;
+      border-top: 1px solid var(--crema-oscuro);
+      padding-top: 8px;
+      font-size: 0.85rem;
+      color: var(--gris);
+    }
+
+    .historial li {
+      padding: 6px 0;
+      border-bottom: 1px dotted var(--crema-oscuro);
+    }
+
+    .fotos {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .fotos img {
+      width: 96px;
+      height: 96px;
+      object-fit: cover;
+      border: 1px solid var(--crema-oscuro);
+    }
+
     .vacio {
       text-align: center;
       color: var(--gris);
@@ -311,11 +359,9 @@
 
     .vacio.error { color: var(--rojo); }
 
-    [hidden] { display: none !important; }
-
-    @media (max-width: 480px) {
-      .tab { padding: 12px 10px; letter-spacing: 1px; }
-      .fotos-bit img { width: 84px; height: 84px; }
+    @media (max-width: 640px) {
+      .fila2 { grid-template-columns: 1fr; }
+      .barra select { min-width: 0; }
     }
   </style>
 </head>
@@ -332,7 +378,7 @@
   <!-- LOGIN -->
   <section class="login" id="pantalla-login" hidden>
     <h1>Ingreso</h1>
-    <p class="ayuda">Solo para la administración del refugio.</p>
+    <p class="ayuda" style="margin-bottom:28px;">Solo para la administración del refugio.</p>
     <form id="form-login">
       <div>
         <label for="correo">Correo</label>
@@ -349,51 +395,130 @@
 
   <!-- PANEL -->
   <main class="panel" id="pantalla-panel" hidden>
-
-    <nav class="tabs" role="tablist">
-      <button type="button" class="tab activa" id="tab-solicitudes" role="tab" aria-selected="true">Solicitudes</button>
-      <button type="button" class="tab" id="tab-bitacora" role="tab" aria-selected="false">Bitácora de limpieza</button>
+    <nav class="tabs">
+      <button type="button" class="tab activo" data-tab="reservas">Reservas</button>
+      <button type="button" class="tab" data-tab="bitacora">Bitácora de limpieza</button>
     </nav>
 
-    <!-- SOLICITUDES -->
-    <section id="vista-solicitudes">
+    <!-- VISTA RESERVAS -->
+    <section id="vista-reservas">
       <div class="barra">
-        <h1>Solicitudes</h1>
-        <select id="filtro" aria-label="Filtrar por estado">
-          <option value="nueva">Nuevas</option>
-          <option value="confirmada">Confirmadas</option>
-          <option value="rechazada">Rechazadas</option>
-          <option value="cancelada">Canceladas</option>
-          <option value="todas">Todas</option>
-        </select>
+        <h1>Reservas</h1>
+        <div class="controles">
+          <select id="filtro" aria-label="Filtrar por estado">
+            <option value="nueva">Nuevas</option>
+            <option value="confirmada">Confirmadas</option>
+            <option value="completada">Completadas</option>
+            <option value="bloqueada">Bloqueos</option>
+            <option value="cancelada">Canceladas</option>
+            <option value="rechazada">Rechazadas</option>
+            <option value="todas">Todas</option>
+          </select>
+          <button type="button" class="btn-nueva" id="btn-nueva">+ Nueva reserva</button>
+        </div>
       </div>
+
+      <section class="formulario" id="formulario" hidden>
+        <h2 id="form-titulo">Nueva reserva</h2>
+        <form id="form-reserva">
+          <input type="hidden" id="f-id">
+          <div class="fila2">
+            <div>
+              <label for="f-tipo">Tipo</label>
+              <select id="f-tipo">
+                <option value="confirmada">Reserva confirmada</option>
+                <option value="nueva">Solicitud pendiente</option>
+                <option value="bloqueada">Bloqueo (mantenimiento o uso personal)</option>
+              </select>
+            </div>
+            <div>
+              <label for="f-canal">Canal de procedencia</label>
+              <select id="f-canal">
+                <option value="directa">Directa / teléfono</option>
+                <option value="airbnb">Airbnb</option>
+                <option value="booking">Booking</option>
+                <option value="expedia">Expedia</option>
+                <option value="web">Web propia</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+          </div>
+          <div class="fila2">
+            <div>
+              <label for="f-cabana">Cabaña</label>
+              <select id="f-cabana">
+                <option value="">Seleccione</option>
+                <option value="Cabaña Grande">Cabaña Grande</option>
+                <option value="Cabina Pequeña">Cabina Pequeña</option>
+              </select>
+            </div>
+            <div>
+              <label for="f-personas">Personas</label>
+              <input type="number" id="f-personas" min="1" max="8" value="2">
+            </div>
+          </div>
+          <div class="fila2">
+            <div>
+              <label for="f-entrada">Entrada</label>
+              <input type="date" id="f-entrada">
+            </div>
+            <div>
+              <label for="f-salida">Salida</label>
+              <input type="date" id="f-salida">
+            </div>
+          </div>
+          <div class="fila2">
+            <div>
+              <label for="f-nombre">Nombre</label>
+              <input type="text" id="f-nombre" maxlength="120">
+            </div>
+            <div>
+              <label for="f-telefono">Teléfono</label>
+              <input type="tel" id="f-telefono" maxlength="30">
+            </div>
+          </div>
+          <div>
+            <label for="f-correo">Correo (opcional)</label>
+            <input type="email" id="f-correo" maxlength="120">
+          </div>
+          <div>
+            <label for="f-notas">Notas</label>
+            <textarea id="f-notas" maxlength="1000"></textarea>
+          </div>
+          <p class="error-texto" id="error-form"></p>
+          <div class="acciones-form">
+            <button type="submit" id="boton-guardar">Guardar</button>
+            <button type="button" class="sec" id="boton-cerrar-form">Cerrar</button>
+          </div>
+        </form>
+      </section>
+
       <div id="lista"></div>
     </section>
 
-    <!-- BITÁCORA -->
+    <!-- VISTA BITÁCORA -->
     <section id="vista-bitacora" hidden>
       <div class="barra">
-        <h1>Bitácora</h1>
-        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+        <h1>Bitácora de limpieza</h1>
+        <div class="controles">
           <select id="filtro-cabana" aria-label="Filtrar por cabaña">
-            <option value="">Todas las cabañas</option>
+            <option value="todas">Todas las cabañas</option>
             <option value="Cabaña Grande">Cabaña Grande</option>
             <option value="Cabina Pequeña">Cabina Pequeña</option>
           </select>
           <select id="filtro-tipo" aria-label="Filtrar por tipo">
-            <option value="">Todos los tipos</option>
-            <option value="consumo">Consumo / uso</option>
-            <option value="reposicion">Necesita reposición</option>
+            <option value="todos">Todos los tipos</option>
+            <option value="consumo">Consumo</option>
+            <option value="reposicion">Reposición</option>
             <option value="faltante">Faltante</option>
             <option value="dano">Daño</option>
-            <option value="extravio">Extraviado</option>
+            <option value="extravio">Extravío</option>
           </select>
-          <button type="button" class="btn-linea" id="btn-actualizar-bit">Actualizar</button>
+          <button type="button" class="btn-nueva" id="btn-actualizar-bitacora">Actualizar</button>
         </div>
       </div>
       <div id="lista-bitacora"></div>
     </section>
-
   </main>
 
   <script type="module">
@@ -403,14 +528,16 @@
       collection,
       doc,
       getDocs,
+      addDoc,
+      deleteDoc,
       query,
       where,
       orderBy,
       limit,
-      updateDoc,
-      deleteDoc,
+      runTransaction,
       writeBatch,
-      serverTimestamp
+      serverTimestamp,
+      Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import {
       getAuth,
@@ -435,6 +562,31 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
+    const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 2 };
+    const ETIQUETAS_ESTADO = {
+      nueva: "Nueva",
+      confirmada: "Confirmada",
+      completada: "Completada",
+      bloqueada: "Bloqueada",
+      cancelada: "Cancelada",
+      rechazada: "Rechazada"
+    };
+    const ETIQUETAS_CANAL = {
+      web: "Web propia",
+      directa: "Directa / teléfono",
+      airbnb: "Airbnb",
+      booking: "Booking",
+      expedia: "Expedia",
+      otro: "Otro"
+    };
+    const TIPOS = {
+      consumo: "Consumo",
+      reposicion: "Reposición",
+      faltante: "Faltante",
+      dano: "Daño",
+      extravio: "Extravío"
+    };
+
     /* =========================================================
        ELEMENTOS
        ========================================================= */
@@ -444,20 +596,38 @@
     const formLogin = document.getElementById("form-login");
     const botonLogin = document.getElementById("boton-login");
     const errorLogin = document.getElementById("error-login");
-    const tabSolicitudes = document.getElementById("tab-solicitudes");
-    const tabBitacora = document.getElementById("tab-bitacora");
-    const vistaSolicitudes = document.getElementById("vista-solicitudes");
+
+    const vistaReservas = document.getElementById("vista-reservas");
     const vistaBitacora = document.getElementById("vista-bitacora");
     const filtro = document.getElementById("filtro");
     const lista = document.getElementById("lista");
+    const btnNueva = document.getElementById("btn-nueva");
+
+    const formulario = document.getElementById("formulario");
+    const formTitulo = document.getElementById("form-titulo");
+    const formReserva = document.getElementById("form-reserva");
+    const fId = document.getElementById("f-id");
+    const fTipo = document.getElementById("f-tipo");
+    const fCanal = document.getElementById("f-canal");
+    const fCabana = document.getElementById("f-cabana");
+    const fPersonas = document.getElementById("f-personas");
+    const fEntrada = document.getElementById("f-entrada");
+    const fSalida = document.getElementById("f-salida");
+    const fNombre = document.getElementById("f-nombre");
+    const fTelefono = document.getElementById("f-telefono");
+    const fCorreo = document.getElementById("f-correo");
+    const fNotas = document.getElementById("f-notas");
+    const errorForm = document.getElementById("error-form");
+    const botonGuardar = document.getElementById("boton-guardar");
+
     const filtroCabana = document.getElementById("filtro-cabana");
     const filtroTipo = document.getElementById("filtro-tipo");
-    const btnActualizarBit = document.getElementById("btn-actualizar-bit");
     const listaBitacora = document.getElementById("lista-bitacora");
+    const btnActualizarBitacora = document.getElementById("btn-actualizar-bitacora");
 
     let solicitudes = [];
     let reportes = [];
-    let nombresStaff = {};
+    let personal = {};
 
     /* =========================================================
        UTILIDADES
@@ -494,33 +664,69 @@
       return noches;
     }
 
+    // Identificador fijo de cada noche: impide guardar dos veces la misma noche
+    function claveBloqueo(cabana, fecha) {
+      return cabana + "_" + fecha;
+    }
+
+    function estaVencido(b) {
+      return b.estado === "pendiente" &&
+        !!b.expiraEn &&
+        typeof b.expiraEn.toMillis === "function" &&
+        b.expiraEn.toMillis() < Date.now();
+    }
+
+    // Las solicitudes nuevas bloquean 48 horas; lo confirmado o bloqueado queda fijo
+    function camposHold(estado) {
+      if (estado === "nueva") {
+        return {
+          estado: "pendiente",
+          expiraEn: Timestamp.fromMillis(Date.now() + 48 * 60 * 60 * 1000)
+        };
+      }
+      return { estado: "reservado" };
+    }
+
     function formatoLargo(texto) {
       return fechaDesdeTexto(texto).toLocaleDateString("es-CR", { day: "numeric", month: "short", year: "numeric" });
+    }
+
+    function fechaHora(ts) {
+      return ts && typeof ts.toDate === "function"
+        ? ts.toDate().toLocaleString("es-CR", { dateStyle: "short", timeStyle: "short" })
+        : "";
+    }
+
+    function milisegundos(ts) {
+      return ts && typeof ts.toMillis === "function" ? ts.toMillis() : 0;
     }
 
     function soloDigitos(texto) {
       return String(texto || "").replace(/\D/g, "");
     }
 
-    // Miniatura cuadrada de Cloudinary
     function miniatura(url) {
-      return url.replace("/upload/", "/upload/c_fill,w_240,h_240,f_auto,q_auto/");
+      return url.indexOf("/upload/") !== -1
+        ? url.replace("/upload/", "/upload/c_fill,w_240,h_240/")
+        : url;
     }
 
-    const etiquetas = {
-      nueva: "Nueva",
-      confirmada: "Confirmada",
-      rechazada: "Rechazada",
-      cancelada: "Cancelada"
-    };
-
-    const etiquetasTipo = {
-      consumo: "Consumo / uso",
-      reposicion: "Necesita reposición",
-      faltante: "Faltante",
-      dano: "Daño",
-      extravio: "Extraviado"
-    };
+    /* =========================================================
+       REGISTRO DE HISTORIAL
+       ========================================================= */
+    async function registrarHistorial(solicitudId, accion, detalle) {
+      try {
+        await addDoc(collection(db, "historial"), {
+          solicitudId: solicitudId,
+          accion: accion,
+          detalle: detalle || "",
+          usuario: auth.currentUser ? auth.currentUser.email : "",
+          creadoEn: serverTimestamp()
+        });
+      } catch (error) {
+        console.warn("No se pudo registrar el historial:", error);
+      }
+    }
 
     /* =========================================================
        LOGIN
@@ -552,7 +758,7 @@
         pantallaLogin.hidden = true;
         pantallaPanel.hidden = false;
         btnSalir.hidden = false;
-        mostrarVista("solicitudes");
+        cargarSolicitudes();
       } else {
         pantallaPanel.hidden = true;
         btnSalir.hidden = true;
@@ -565,27 +771,20 @@
     /* =========================================================
        PESTAÑAS
        ========================================================= */
-    function mostrarVista(nombre) {
-      const esSolicitudes = nombre === "solicitudes";
-      tabSolicitudes.classList.toggle("activa", esSolicitudes);
-      tabBitacora.classList.toggle("activa", !esSolicitudes);
-      tabSolicitudes.setAttribute("aria-selected", String(esSolicitudes));
-      tabBitacora.setAttribute("aria-selected", String(!esSolicitudes));
-      vistaSolicitudes.hidden = !esSolicitudes;
-      vistaBitacora.hidden = esSolicitudes;
-
-      if (esSolicitudes) {
-        cargarSolicitudes();
-      } else {
-        cargarBitacora();
-      }
-    }
-
-    tabSolicitudes.addEventListener("click", function () { mostrarVista("solicitudes"); });
-    tabBitacora.addEventListener("click", function () { mostrarVista("bitacora"); });
+    document.querySelectorAll(".tab").forEach(function (boton) {
+      boton.addEventListener("click", function () {
+        const destino = boton.dataset.tab;
+        document.querySelectorAll(".tab").forEach(function (t) {
+          t.classList.toggle("activo", t === boton);
+        });
+        vistaReservas.hidden = destino !== "reservas";
+        vistaBitacora.hidden = destino !== "bitacora";
+        if (destino === "bitacora") cargarBitacora();
+      });
+    });
 
     /* =========================================================
-       SOLICITUDES
+       RESERVAS: CARGAR Y MOSTRAR
        ========================================================= */
     async function cargarSolicitudes() {
       lista.innerHTML = '<p class="vacio">Cargando…</p>';
@@ -597,20 +796,26 @@
         render();
       } catch (error) {
         console.error(error);
-        lista.innerHTML = '<p class="vacio error">No pudimos cargar las solicitudes. Revise que su cuenta esté autorizada.</p>';
+        lista.innerHTML = '<p class="vacio error">No pudimos cargar las reservas. Revise que su cuenta esté autorizada.</p>';
       }
     }
 
     function botonesDe(s) {
+      const id = esc(s.id);
+      function boton(accion, texto, secundario) {
+        return '<button type="button" ' + (secundario ? 'class="sec" ' : "") +
+          'data-accion="' + accion + '" data-id="' + id + '">' + texto + "</button>";
+      }
+
       let html = "";
       if (s.estado === "nueva") {
-        html += '<button type="button" data-accion="confirmar" data-id="' + esc(s.id) + '">Confirmar</button>' +
-                '<button type="button" class="sec" data-accion="rechazar" data-id="' + esc(s.id) + '">Rechazar</button>';
+        html += boton("confirmar", "Confirmar") + boton("rechazar", "Rechazar", true) + boton("editar", "Editar", true);
+      } else if (s.estado === "confirmada") {
+        html += boton("editar", "Editar", true) + boton("completar", "Marcar completada") + boton("cancelar", "Cancelar reserva", true);
+      } else if (s.estado === "bloqueada") {
+        html += boton("editar", "Editar", true) + boton("cancelar", "Quitar bloqueo", true);
       }
-      if (s.estado === "confirmada") {
-        html += '<button type="button" class="sec" data-accion="cancelar" data-id="' + esc(s.id) + '">Cancelar reserva</button>';
-      }
-      html += '<button type="button" class="sec" data-accion="eliminar" data-id="' + esc(s.id) + '">Eliminar</button>';
+      html += boton("historial", "Historial", true) + boton("eliminar", "Eliminar", true);
       return html;
     }
 
@@ -618,25 +823,24 @@
       const noches = listaNoches(s.entrada, s.salida);
       const tel = soloDigitos(s.telefono);
       const numeroWa = tel.length === 8 ? "506" + tel : tel;
-      const wa = tel ? '<a href="https://wa.me/' + esc(numeroWa) + '" target="_blank" rel="noopener">WhatsApp</a>' : "";
-      const notas = s.notas ? '<p class="notas">' + esc(s.notas) + "</p>" : "";
+      const partes = [];
+      if (s.telefono) partes.push('<a href="tel:' + esc(s.telefono) + '">' + esc(s.telefono) + "</a>");
+      if (s.correo) partes.push('<a href="mailto:' + esc(s.correo) + '">' + esc(s.correo) + "</a>");
+      if (tel) partes.push('<a href="https://wa.me/' + esc(numeroWa) + '" target="_blank" rel="noopener">WhatsApp</a>');
 
       return '<article class="tarjeta">' +
         '<div class="t-cab">' +
-          '<span class="cab">' + esc(s.cabana) + "</span>" +
-          '<span class="estado ' + esc(s.estado) + '">' + esc(etiquetas[s.estado] || s.estado) + "</span>" +
+          '<span class="cab">' + esc(s.cabana) + " · " + esc(ETIQUETAS_CANAL[s.canal] || "Web propia") + "</span>" +
+          '<span class="estado ' + esc(s.estado) + '">' + esc(ETIQUETAS_ESTADO[s.estado] || s.estado) + "</span>" +
         "</div>" +
         "<h3>" + esc(s.nombre) + "</h3>" +
         '<p class="fechas">' + formatoLargo(s.entrada) + " → " + formatoLargo(s.salida) +
           " · " + noches.length + (noches.length === 1 ? " noche" : " noches") +
           " · " + esc(s.personas) + " personas</p>" +
-        '<p class="contacto">' +
-          '<a href="tel:' + esc(s.telefono) + '">' + esc(s.telefono) + "</a> · " +
-          '<a href="mailto:' + esc(s.correo) + '">' + esc(s.correo) + "</a>" +
-          (wa ? " · " + wa : "") +
-        "</p>" +
-        notas +
+        (partes.length ? '<p class="contacto">' + partes.join(" · ") + "</p>" : "") +
+        (s.notas ? '<p class="notas">' + esc(s.notas) + "</p>" : "") +
         '<div class="acciones">' + botonesDe(s) + "</div>" +
+        '<div class="historial-box" data-historial="' + esc(s.id) + '" hidden></div>' +
       "</article>";
     }
 
@@ -647,7 +851,7 @@
       });
 
       if (visibles.length === 0) {
-        lista.innerHTML = '<p class="vacio">No hay solicitudes en este estado.</p>';
+        lista.innerHTML = '<p class="vacio">No hay reservas en este estado.</p>';
         return;
       }
 
@@ -657,65 +861,340 @@
     filtro.addEventListener("change", render);
 
     /* =========================================================
+       FORMULARIO: NUEVA RESERVA Y EDICIÓN
+       ========================================================= */
+    function mostrarError(texto) {
+      errorForm.textContent = texto;
+    }
+
+    function abrirFormulario(s) {
+      errorForm.textContent = "";
+      if (s) {
+        formTitulo.textContent = "Editar reserva";
+        fId.value = s.id;
+        fTipo.value = s.estado;
+        fCanal.value = s.canal || "web";
+        fCabana.value = s.cabana;
+        fPersonas.value = s.personas;
+        fEntrada.value = s.entrada;
+        fSalida.value = s.salida;
+        fNombre.value = s.nombre || "";
+        fTelefono.value = s.telefono || "";
+        fCorreo.value = s.correo || "";
+        fNotas.value = s.notas || "";
+      } else {
+        formTitulo.textContent = "Nueva reserva";
+        formReserva.reset();
+        fId.value = "";
+        fTipo.value = "confirmada";
+        fCanal.value = "directa";
+        fPersonas.value = 2;
+      }
+      formulario.hidden = false;
+      formulario.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function cerrarFormulario() {
+      formulario.hidden = true;
+      errorForm.textContent = "";
+    }
+
+    btnNueva.addEventListener("click", function () { abrirFormulario(null); });
+    document.getElementById("boton-cerrar-form").addEventListener("click", cerrarFormulario);
+
+    function leerFormulario() {
+      const cabana = fCabana.value;
+      const entrada = fEntrada.value;
+      const salida = fSalida.value;
+      const personas = Number(fPersonas.value);
+      const nombre = fNombre.value.trim();
+
+      if (!cabana) { mostrarError("Elija una cabaña."); return null; }
+      if (!entrada || !salida) { mostrarError("Indique la entrada y la salida."); return null; }
+      if (salida <= entrada) { mostrarError("La salida debe ser posterior a la entrada."); return null; }
+      if (!personas || personas < 1 || personas > MAX_PERSONAS[cabana]) {
+        mostrarError("La cantidad de personas no es válida para esa cabaña (máximo " + MAX_PERSONAS[cabana] + ").");
+        return null;
+      }
+      if (!nombre) { mostrarError("Escriba un nombre."); return null; }
+
+      return {
+        id: fId.value || null,
+        cabana: cabana,
+        entrada: entrada,
+        salida: salida,
+        personas: personas,
+        nombre: nombre,
+        telefono: fTelefono.value.trim(),
+        correo: fCorreo.value.trim(),
+        notas: fNotas.value.trim(),
+        estado: fTipo.value,
+        canal: fCanal.value
+      };
+    }
+
+    formReserva.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      errorForm.textContent = "";
+      const datos = leerFormulario();
+      if (!datos) return;
+
+      botonGuardar.disabled = true;
+      try {
+        await guardarReserva(datos, datos.id ? "Editada" : "Creada");
+        cerrarFormulario();
+        await cargarSolicitudes();
+      } catch (error) {
+        console.error(error);
+        mostrarError(error.message === "CONFLICTO"
+          ? "Alguna de esas noches ya está ocupada para esta cabaña."
+          : "No se pudo guardar. Intente de nuevo.");
+      } finally {
+        botonGuardar.disabled = false;
+      }
+    });
+
+    /* =========================================================
+       GUARDAR RESERVA (nueva, editada o confirmada)
+       Todas las noches se revisan y se escriben dentro de una
+       transacción: si una noche ya está ocupada, no se guarda nada.
+       ========================================================= */
+    async function guardarReserva(datos, accion) {
+      const noches = listaNoches(datos.entrada, datos.salida);
+      const sRef = datos.id ? doc(db, "solicitudes", datos.id) : doc(collection(db, "solicitudes"));
+      const solicitudId = sRef.id;
+
+      // Revisión adicional de bloqueos antiguos (con identificador aleatorio)
+      const todos = await getDocs(collection(db, "bloqueos"));
+      const choqueAntiguo = todos.docs.some(function (d) {
+        const b = d.data();
+        return b.cabana === datos.cabana &&
+          b.solicitudId !== solicitudId &&
+          noches.indexOf(b.fecha) !== -1 &&
+          !estaVencido(b);
+      });
+      if (choqueAntiguo) throw new Error("CONFLICTO");
+
+      const anteriores = datos.id
+        ? todos.docs.filter(function (d) { return d.data().solicitudId === datos.id; }).map(function (d) { return d.ref; })
+        : [];
+
+      const refs = noches.map(function (f) {
+        return doc(db, "bloqueos", claveBloqueo(datos.cabana, f));
+      });
+      const hold = camposHold(datos.estado);
+
+      await runTransaction(db, async function (tx) {
+        const snaps = [];
+        for (const r of refs) {
+          snaps.push(await tx.get(r));
+        }
+
+        const ocupada = snaps.some(function (s) {
+          return s.exists() && s.data().solicitudId !== solicitudId && !estaVencido(s.data());
+        });
+        if (ocupada) throw new Error("CONFLICTO");
+
+        anteriores.forEach(function (r) {
+          if (!refs.some(function (x) { return x.path === r.path; })) tx.delete(r);
+        });
+
+        refs.forEach(function (r, i) {
+          tx.set(r, Object.assign({
+            cabana: datos.cabana,
+            fecha: noches[i],
+            solicitudId: solicitudId,
+            creadoEn: serverTimestamp()
+          }, hold));
+        });
+
+        const campos = {
+          cabana: datos.cabana,
+          entrada: datos.entrada,
+          salida: datos.salida,
+          personas: datos.personas,
+          nombre: datos.nombre,
+          telefono: datos.telefono,
+          correo: datos.correo,
+          notas: datos.notas,
+          estado: datos.estado,
+          canal: datos.canal
+        };
+        if (!datos.id) campos.creadoEn = serverTimestamp();
+        tx.set(sRef, campos, { merge: true });
+      });
+
+      await registrarHistorial(solicitudId, accion, datos.cabana + " · " + datos.entrada + " → " + datos.salida + " · " + datos.personas + " personas");
+    }
+
+    function datosDeSolicitud(s, estado) {
+      return {
+        id: s.id,
+        cabana: s.cabana,
+        entrada: s.entrada,
+        salida: s.salida,
+        personas: s.personas,
+        nombre: s.nombre,
+        telefono: s.telefono || "",
+        correo: s.correo || "",
+        notas: s.notas || "",
+        canal: s.canal || "web",
+        estado: estado
+      };
+    }
+
+    /* =========================================================
+       ACCIONES SOBRE CADA RESERVA
+       ========================================================= */
+    lista.addEventListener("click", async function (e) {
+      const boton = e.target.closest("button[data-accion]");
+      if (!boton) return;
+
+      const s = solicitudes.find(function (x) { return x.id === boton.dataset.id; });
+      if (!s) return;
+
+      const accion = boton.dataset.accion;
+
+      if (accion === "editar") {
+        abrirFormulario(s);
+        return;
+      }
+      if (accion === "historial") {
+        alternarHistorial(s, boton);
+        return;
+      }
+
+      boton.disabled = true;
+      try {
+        if (accion === "confirmar") await confirmar(s);
+        if (accion === "rechazar") await cambiarEstado(s, "rechazada", "¿Rechazar la solicitud de " + s.nombre + "? Las noches quedarán disponibles.", true);
+        if (accion === "cancelar") await cambiarEstado(s, "cancelada", "¿Cancelar la reserva de " + s.nombre + "? Las noches quedarán disponibles.", true);
+        if (accion === "completar") await cambiarEstado(s, "completada", "¿Marcar la estadía de " + s.nombre + " como completada?", false);
+        if (accion === "eliminar") await eliminar(s);
+        await cargarSolicitudes();
+      } catch (error) {
+        console.error(error);
+        alert(error.message === "CONFLICTO"
+          ? "Alguna de esas noches ya está ocupada. Revise el calendario."
+          : "No se pudo completar la acción. Intente de nuevo.");
+        boton.disabled = false;
+      }
+    });
+
+    async function confirmar(s) {
+      if (!confirm("¿Confirmar la reserva de " + s.nombre + "?")) return;
+      await guardarReserva(datosDeSolicitud(s, "confirmada"), "Confirmada");
+    }
+
+    async function cambiarEstado(s, estado, pregunta, liberarNoches) {
+      if (!confirm(pregunta)) return;
+
+      const batch = writeBatch(db);
+      if (liberarNoches) {
+        const bloqueos = await getDocs(query(collection(db, "bloqueos"), where("solicitudId", "==", s.id)));
+        bloqueos.docs.forEach(function (d) { batch.delete(d.ref); });
+      }
+      batch.update(doc(db, "solicitudes", s.id), { estado: estado });
+      await batch.commit();
+
+      await registrarHistorial(s.id, ETIQUETAS_ESTADO[estado], "Estado cambiado a " + ETIQUETAS_ESTADO[estado].toLowerCase());
+    }
+
+    async function eliminar(s) {
+      if (!confirm("¿Eliminar la solicitud de " + s.nombre + " y liberar sus fechas? No se puede deshacer.")) return;
+
+      await registrarHistorial(s.id, "Eliminada", s.cabana + " · " + s.entrada + " → " + s.salida);
+
+      const bloqueos = await getDocs(query(collection(db, "bloqueos"), where("solicitudId", "==", s.id)));
+      const batch = writeBatch(db);
+      bloqueos.docs.forEach(function (d) { batch.delete(d.ref); });
+      batch.delete(doc(db, "solicitudes", s.id));
+      await batch.commit();
+    }
+
+    async function alternarHistorial(s, boton) {
+      const contenedor = lista.querySelector('[data-historial="' + s.id + '"]');
+      if (!contenedor) return;
+
+      if (!contenedor.hidden) {
+        contenedor.hidden = true;
+        boton.textContent = "Historial";
+        return;
+      }
+
+      contenedor.hidden = false;
+      boton.textContent = "Ocultar historial";
+      contenedor.innerHTML = '<p class="vacio">Cargando…</p>';
+
+      try {
+        const snap = await getDocs(query(collection(db, "historial"), where("solicitudId", "==", s.id)));
+        const items = snap.docs.map(function (d) { return d.data(); })
+          .sort(function (a, b) { return milisegundos(b.creadoEn) - milisegundos(a.creadoEn); });
+
+        contenedor.innerHTML = items.length
+          ? '<ul class="historial">' + items.map(function (i) {
+              return "<li><strong>" + esc(i.accion) + "</strong> · " + esc(i.detalle) +
+                " · " + esc(i.usuario) + " · " + esc(fechaHora(i.creadoEn)) + "</li>";
+            }).join("") + "</ul>"
+          : '<p class="ayuda">Sin movimientos registrados.</p>';
+      } catch (error) {
+        console.error(error);
+        contenedor.innerHTML = '<p class="vacio error">No pudimos cargar el historial.</p>';
+      }
+    }
+
+    /* =========================================================
        BITÁCORA DE LIMPIEZA
        ========================================================= */
     async function cargarBitacora() {
       listaBitacora.innerHTML = '<p class="vacio">Cargando…</p>';
       try {
-        const [repSnap, staffSnap] = await Promise.all([
+        const [bitacora, personalSnap] = await Promise.all([
           getDocs(query(collection(db, "bitacora"), orderBy("creadoEn", "desc"), limit(100))),
           getDocs(collection(db, "staff"))
         ]);
 
-        nombresStaff = {};
-        staffSnap.forEach(function (d) {
-          nombresStaff[d.id] = d.data().nombre || "Sin nombre";
+        personal = {};
+        personalSnap.forEach(function (d) {
+          personal[d.id] = d.data().nombre || "";
         });
 
-        reportes = repSnap.docs.map(function (d) {
+        reportes = bitacora.docs.map(function (d) {
           return Object.assign({ id: d.id }, d.data());
         });
-
         renderBitacora();
       } catch (error) {
         console.error(error);
-        listaBitacora.innerHTML = '<p class="vacio error">No pudimos cargar la bitácora. ' + esc(error.code || "") + "</p>";
+        listaBitacora.innerHTML = '<p class="vacio error">No pudimos cargar la bitácora. Revise que su cuenta esté autorizada.</p>';
       }
     }
 
     function tarjetaBitacora(r) {
-      const ms = r.creadoEn && r.creadoEn.toMillis ? r.creadoEn.toMillis() : null;
-      const fecha = ms
-        ? new Date(ms).toLocaleString("es-CR", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
-        : "";
-      const quien = nombresStaff[r.creadoPor] || "Usuario no identificado";
-      const nota = r.nota ? '<p class="notas">' + esc(r.nota) + "</p>" : "";
-      const fotos = Array.isArray(r.fotos) && r.fotos.length
-        ? '<div class="fotos-bit">' + r.fotos.map(function (url) {
-            return '<a href="' + esc(url) + '" target="_blank" rel="noopener">' +
-              '<img src="' + esc(miniatura(url)) + '" alt="Foto del reporte"></a>';
-          }).join("") + "</div>"
-        : "";
+      const fotos = (r.fotos || []).map(function (url) {
+        return '<a href="' + esc(url) + '" target="_blank" rel="noopener"><img src="' + esc(miniatura(url)) + '" alt="Foto del reporte"></a>';
+      }).join("");
+
+      const cantidad = r.cantidad !== undefined && r.cantidad !== "" ? "Cantidad: " + esc(r.cantidad) + " · " : "";
 
       return '<article class="tarjeta">' +
         '<div class="t-cab">' +
           '<span class="cab">' + esc(r.cabana) + "</span>" +
-          '<span class="fecha-bit">' + esc(fecha) + "</span>" +
+          '<span class="estado">' + esc(TIPOS[r.tipo] || r.tipo) + "</span>" +
         "</div>" +
-        "<h3>" + esc(etiquetasTipo[r.tipo] || r.tipo) + " · " + esc(r.producto) + " × " + esc(r.cantidad) + "</h3>" +
-        '<p class="contacto">Reportó: ' + esc(quien) + "</p>" +
-        nota +
-        fotos +
-        '<div class="acciones"><button type="button" class="sec" data-accion="eliminar-reporte" data-id="' + esc(r.id) + '">Eliminar reporte</button></div>' +
+        "<h3>" + esc(r.producto || "Sin producto") + "</h3>" +
+        '<p class="fechas">' + cantidad + esc(fechaHora(r.creadoEn)) + " · " + esc(personal[r.creadoPor] || "Personal") + "</p>" +
+        (r.nota ? '<p class="notas">' + esc(r.nota) + "</p>" : "") +
+        (fotos ? '<div class="fotos">' + fotos + "</div>" : "") +
+        '<div class="acciones"><button type="button" class="sec" data-borrar-reporte="' + esc(r.id) + '">Eliminar reporte</button></div>' +
       "</article>";
     }
 
     function renderBitacora() {
       const cabana = filtroCabana.value;
       const tipo = filtroTipo.value;
-
       const visibles = reportes.filter(function (r) {
-        return (!cabana || r.cabana === cabana) && (!tipo || r.tipo === tipo);
+        return (cabana === "todas" || r.cabana === cabana) &&
+               (tipo === "todos" || r.tipo === tipo);
       });
 
       if (visibles.length === 0) {
@@ -728,110 +1207,23 @@
 
     filtroCabana.addEventListener("change", renderBitacora);
     filtroTipo.addEventListener("change", renderBitacora);
-    btnActualizarBit.addEventListener("click", cargarBitacora);
+    btnActualizarBitacora.addEventListener("click", cargarBitacora);
 
     listaBitacora.addEventListener("click", async function (e) {
-      const boton = e.target.closest("button[data-accion='eliminar-reporte']");
+      const boton = e.target.closest("button[data-borrar-reporte]");
       if (!boton) return;
-
-      if (!confirm("¿Eliminar este reporte? No se puede recuperar.")) return;
+      if (!confirm("¿Eliminar este reporte de la bitácora? Las fotos quedan en Cloudinary.")) return;
 
       boton.disabled = true;
       try {
-        await deleteDoc(doc(db, "bitacora", boton.dataset.id));
+        await deleteDoc(doc(db, "bitacora", boton.dataset.borrarReporte));
         await cargarBitacora();
       } catch (error) {
         console.error(error);
-        alert("No se pudo eliminar el reporte: " + (error.code || error.message));
+        alert("No se pudo eliminar el reporte. Intente de nuevo.");
         boton.disabled = false;
       }
     });
-
-    /* =========================================================
-       ACCIONES DE SOLICITUDES
-       ========================================================= */
-    lista.addEventListener("click", async function (e) {
-      const boton = e.target.closest("button[data-accion]");
-      if (!boton) return;
-
-      const s = solicitudes.find(function (x) { return x.id === boton.dataset.id; });
-      if (!s) return;
-
-      const accion = boton.dataset.accion;
-      boton.disabled = true;
-      try {
-        if (accion === "confirmar") await confirmar(s);
-        if (accion === "rechazar") await rechazar(s);
-        if (accion === "cancelar") await cancelar(s);
-        if (accion === "eliminar") await eliminar(s);
-        await cargarSolicitudes();
-      } catch (error) {
-        console.error(error);
-        alert("No se pudo completar la acción. Intente de nuevo.");
-        boton.disabled = false;
-      }
-    });
-
-    async function confirmar(s) {
-      if (!confirm("¿Confirmar la reserva de " + s.nombre + "?")) return;
-
-      const noches = listaNoches(s.entrada, s.salida);
-
-      // Evita confirmar encima de otra reserva
-      const bloqueos = await getDocs(collection(db, "bloqueos"));
-      const choque = bloqueos.docs.some(function (d) {
-        const b = d.data();
-        return b.cabana === s.cabana && noches.indexOf(b.fecha) !== -1;
-      });
-
-      if (choque) {
-        alert("Alguna de esas noches ya está bloqueada para esta cabaña. Revise el calendario antes de confirmar.");
-        throw new Error("Conflicto de fechas");
-      }
-
-      const batch = writeBatch(db);
-      noches.forEach(function (fecha) {
-        batch.set(doc(collection(db, "bloqueos")), {
-          cabana: s.cabana,
-          fecha: fecha,
-          estado: "reservado",
-          solicitudId: s.id,
-          creadoEn: serverTimestamp()
-        });
-      });
-      batch.update(doc(db, "solicitudes", s.id), { estado: "confirmada" });
-      await batch.commit();
-    }
-
-    async function rechazar(s) {
-      if (!confirm("¿Rechazar la solicitud de " + s.nombre + "?")) return;
-      await updateDoc(doc(db, "solicitudes", s.id), { estado: "rechazada" });
-    }
-
-    async function cancelar(s) {
-      if (!confirm("¿Cancelar la reserva de " + s.nombre + "? Las noches quedarán disponibles.")) return;
-
-      const bloqueados = await getDocs(query(collection(db, "bloqueos"), where("solicitudId", "==", s.id)));
-      const batch = writeBatch(db);
-      bloqueados.docs.forEach(function (d) {
-        batch.delete(d.ref);
-      });
-      batch.update(doc(db, "solicitudes", s.id), { estado: "cancelada" });
-      await batch.commit();
-    }
-
-    // Borra la solicitud por completo y libera sus noches, si las tenía
-    async function eliminar(s) {
-      if (!confirm("¿Eliminar la solicitud de " + s.nombre + " de forma permanente? Si estaba confirmada, sus noches quedarán libres.")) return;
-
-      const bloqueados = await getDocs(query(collection(db, "bloqueos"), where("solicitudId", "==", s.id)));
-      const batch = writeBatch(db);
-      bloqueados.docs.forEach(function (d) {
-        batch.delete(d.ref);
-      });
-      batch.delete(doc(db, "solicitudes", s.id));
-      await batch.commit();
-    }
   </script>
 
 </body>
