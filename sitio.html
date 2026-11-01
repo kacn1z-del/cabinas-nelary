@@ -69,7 +69,7 @@
       letter-spacing: 0.5px;
     }
 
-    .acciones-header { display: flex; gap: 8px; }
+    .acciones-header { display: flex; gap: 8px; flex-wrap: wrap; }
 
     .btn-header {
       background: transparent;
@@ -102,6 +102,20 @@
 
     .grupo h2 {
       font-size: 1.35rem;
+      margin-bottom: 14px;
+    }
+
+    .subgrupo {
+      font-size: 0.7rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--dorado-oscuro);
+      margin: 6px 0 4px;
+    }
+
+    .ayuda {
+      font-size: 0.85rem;
+      color: var(--gris);
       margin-bottom: 14px;
     }
 
@@ -146,6 +160,21 @@
     .btn:hover:not(:disabled) { background: var(--verde-claro); }
     .btn:disabled { opacity: 0.6; cursor: wait; }
 
+    .btn-linea {
+      background: transparent;
+      color: var(--verde);
+      border: 1px solid var(--verde);
+      padding: 12px;
+      font-size: 0.7rem;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-bottom: 18px;
+    }
+
+    .btn-linea:hover:not(:disabled) { background: var(--crema); }
+    .btn-linea:disabled { opacity: 0.5; cursor: wait; }
+
     .error-texto { color: var(--rojo); font-size: 0.9rem; min-height: 1.2em; }
 
     .mensaje {
@@ -168,6 +197,7 @@
       <span class="titulo">Textos del sitio</span>
     </div>
     <div class="acciones-header">
+      <a href="galeria.html" class="btn-header" id="btn-galeria" hidden>Galería</a>
       <a href="admin.html" class="btn-header" id="btn-volver" hidden>Solicitudes</a>
       <button type="button" class="btn-header" id="btn-salir" hidden>Salir</button>
     </div>
@@ -196,24 +226,48 @@
 
       <section class="grupo">
         <h2>Portada</h2>
+        <div class="subgrupo">Español</div>
         <label for="s-hero">Texto bajo el logo</label>
         <textarea id="s-hero" maxlength="300"></textarea>
         <label for="s-intro">Frase de introducción</label>
         <textarea id="s-intro" maxlength="300"></textarea>
+
+        <div class="subgrupo">English</div>
+        <label for="s-hero-en">Text under the logo</label>
+        <textarea id="s-hero-en" maxlength="300"></textarea>
+        <label for="s-intro-en">Introduction line</label>
+        <textarea id="s-intro-en" maxlength="300"></textarea>
       </section>
 
       <section class="grupo">
         <h2>Cabañas</h2>
+        <div class="subgrupo">Español</div>
         <label for="s-desc-grande">Descripción de la Cabaña Grande</label>
         <textarea id="s-desc-grande" maxlength="400"></textarea>
         <label for="s-desc-pequena">Descripción de la Cabina Pequeña</label>
         <textarea id="s-desc-pequena" maxlength="400"></textarea>
+
+        <div class="subgrupo">English</div>
+        <label for="s-desc-grande-en">Large Cabin description</label>
+        <textarea id="s-desc-grande-en" maxlength="400"></textarea>
+        <label for="s-desc-pequena-en">Small Cabin description</label>
+        <textarea id="s-desc-pequena-en" maxlength="400"></textarea>
       </section>
 
+      <button type="button" class="btn-linea" id="boton-traducir">Traducir al inglés</button>
+      <p class="ayuda" id="ayuda-traducir">Llena los campos en inglés con una traducción automática del texto en español. Revísela antes de guardar.</p>
+
       <section class="grupo">
-        <h2>Contacto</h2>
+        <h2>Ubicación</h2>
+        <div class="subgrupo">Español</div>
         <label for="s-ubicacion">Ubicación</label>
         <input type="text" id="s-ubicacion" maxlength="120">
+
+        <div class="subgrupo">English</div>
+        <label for="s-ubicacion-en">Location</label>
+        <input type="text" id="s-ubicacion-en" maxlength="120">
+
+        <div class="subgrupo">Ambos idiomas</div>
         <label for="s-telefono">Teléfono</label>
         <input type="tel" id="s-telefono" maxlength="30">
         <label for="s-correo">Correo</label>
@@ -265,24 +319,40 @@
     const pantallaEditor = document.getElementById("pantalla-editor");
     const btnSalir = document.getElementById("btn-salir");
     const btnVolver = document.getElementById("btn-volver");
+    const btnGaleria = document.getElementById("btn-galeria");
     const formLogin = document.getElementById("form-login");
     const botonLogin = document.getElementById("boton-login");
     const errorLogin = document.getElementById("error-login");
     const errorEditor = document.getElementById("error-editor");
     const formSitio = document.getElementById("form-sitio");
     const botonGuardar = document.getElementById("boton-guardar");
+    const botonTraducir = document.getElementById("boton-traducir");
     const mensaje = document.getElementById("mensaje");
 
-    // Relación entre cada campo del formulario y su clave en Firestore
+    // Campo del formulario -> clave en Firestore
     const campos = {
       "s-hero": "heroTexto",
+      "s-hero-en": "heroTextoEn",
       "s-intro": "introTexto",
+      "s-intro-en": "introTextoEn",
       "s-desc-grande": "descGrande",
+      "s-desc-grande-en": "descGrandeEn",
       "s-desc-pequena": "descPequena",
+      "s-desc-pequena-en": "descPequenaEn",
       "s-ubicacion": "ubicacion",
+      "s-ubicacion-en": "ubicacionEn",
       "s-telefono": "telefono",
       "s-correo": "correo"
     };
+
+    // Pares español -> inglés que se pueden traducir automáticamente
+    const pares = [
+      ["s-hero", "s-hero-en"],
+      ["s-intro", "s-intro-en"],
+      ["s-desc-grande", "s-desc-grande-en"],
+      ["s-desc-pequena", "s-desc-pequena-en"],
+      ["s-ubicacion", "s-ubicacion-en"]
+    ];
 
     /* =========================================================
        LOGIN
@@ -315,11 +385,13 @@
         pantallaEditor.hidden = false;
         btnSalir.hidden = false;
         btnVolver.hidden = false;
+        btnGaleria.hidden = false;
         cargarTextos();
       } else {
         pantallaEditor.hidden = true;
         btnSalir.hidden = true;
         btnVolver.hidden = true;
+        btnGaleria.hidden = true;
         pantallaLogin.hidden = false;
       }
     });
@@ -346,6 +418,59 @@
       mensaje.classList.toggle("error", !!esError);
       mensaje.hidden = false;
     }
+
+    /* =========================================================
+       TRADUCCIÓN AUTOMÁTICA (español -> inglés)
+       Usa el servicio gratuito MyMemory. Tiene un límite diario;
+       si falla, escriba la traducción a mano.
+       ========================================================= */
+    async function traducir(textoEs) {
+      const url = "https://api.mymemory.translated.net/get?q=" +
+        encodeURIComponent(textoEs) + "&langpair=es|en";
+      const respuesta = await fetch(url);
+      const resultado = await respuesta.json();
+      const texto = resultado && resultado.responseData && resultado.responseData.translatedText;
+      if (!respuesta.ok || !texto) {
+        throw new Error("No se obtuvo traducción");
+      }
+      return texto;
+    }
+
+    botonTraducir.addEventListener("click", async function () {
+      mensaje.hidden = true;
+
+      const pendientes = pares.filter(function (par) {
+        return document.getElementById(par[0]).value.trim() !== "";
+      });
+
+      if (!pendientes.length) {
+        mostrarMensaje("Primero escriba los textos en español.", true);
+        return;
+      }
+
+      if (!confirm("Esto reemplaza lo que haya en los campos en inglés. ¿Continuar?")) return;
+
+      botonTraducir.disabled = true;
+      const textoOriginal = botonTraducir.textContent;
+
+      try {
+        for (let k = 0; k < pendientes.length; k++) {
+          const [idEs, idEn] = pendientes[k];
+          botonTraducir.textContent = "Traduciendo " + (k + 1) + " de " + pendientes.length + "…";
+          const textoEs = document.getElementById(idEs).value.trim();
+          document.getElementById(idEn).value = await traducir(textoEs);
+        }
+
+        // Ubicación: se traduce aparte porque es un campo corto
+        mostrarMensaje("Traducción lista. Revísela y luego toque Guardar cambios.");
+      } catch (error) {
+        console.error(error);
+        mostrarMensaje("No se pudo traducir. Puede escribir la traducción a mano o intentar más tarde.", true);
+      } finally {
+        botonTraducir.disabled = false;
+        botonTraducir.textContent = textoOriginal;
+      }
+    });
 
     formSitio.addEventListener("submit", async function (e) {
       e.preventDefault();
