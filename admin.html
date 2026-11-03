@@ -611,7 +611,17 @@
     let DATOS_PAGO = "[Completar: cuenta SINPE o transferencia]";
     const METODOS_PAGO = ["Transferencia", "SINPE Móvil", "Efectivo", "Tarjeta", "Otro"];
 
-    const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 2 };
+    const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 4 };
+
+    // Tarifas por noche (deben coincidir con la página pública)
+    function precioNoche(cabana, personas) {
+      if (cabana === "Cabina Pequeña") return 45000 + Math.max(0, personas - 2) * 5000;
+      return 55000 + Math.max(0, personas - 6) * 5000;
+    }
+
+    function calcularTotal(cabana, personas, noches) {
+      return precioNoche(cabana, personas) * noches;
+    }
     const ETIQUETAS_ESTADO = {
       nueva: "Nueva",
       confirmada: "Confirmada",
@@ -1160,6 +1170,8 @@
        ========================================================= */
     async function guardarReserva(datos, accion) {
       const noches = listaNoches(datos.entrada, datos.salida);
+      // El total se calcula con las tarifas al guardar
+      datos.precioTotal = calcularTotal(datos.cabana, Number(datos.personas), noches.length);
       const sRef = datos.id ? doc(db, "solicitudes", datos.id) : doc(collection(db, "solicitudes"));
       const solicitudId = sRef.id;
 
@@ -1208,6 +1220,7 @@
         });
 
         const campos = {
+          precioTotal: datos.precioTotal,
           cabana: datos.cabana,
           entrada: datos.entrada,
           salida: datos.salida,
@@ -1247,7 +1260,7 @@
         correo: s.correo || "",
         notas: s.notas || "",
         canal: s.canal || "web",
-        precioTotal: s.precioTotal || 0,
+        precioTotal: calcularTotal(s.cabana, Number(s.personas), listaNoches(s.entrada, s.salida).length),
         estado: estado
       };
     }
