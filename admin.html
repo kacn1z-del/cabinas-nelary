@@ -414,6 +414,7 @@
       <button type="button" class="tab activo" data-tab="reservas">Reservas</button>
       <button type="button" class="tab" data-tab="bitacora">Bitácora de limpieza</button>
       <button type="button" class="tab" data-tab="ajustes">Datos de pago</button>
+      <button type="button" class="tab" data-tab="sincronizacion">Sincronización</button>
     </nav>
 
     <!-- VISTA RESERVAS -->
@@ -547,6 +548,27 @@
         <textarea id="ajustes-texto" rows="8" maxlength="1000"></textarea>
         <p class="error-texto" id="ajustes-mensaje"></p>
         <button type="submit" class="btn" id="btn-guardar-ajustes">Guardar datos de pago</button>
+      </form>
+    </section>
+
+    <!-- VISTA SINCRONIZACIÓN -->
+    <section id="vista-sincronizacion" hidden>
+      <div class="barra">
+        <h1>Sincronización</h1>
+      </div>
+      <p class="ayuda">Pegue el enlace iCal de cada plataforma. Las noches ocupadas en Airbnb o Booking se bloquean aquí. Deje vacío lo que no use.</p>
+      <form id="form-sync" class="formulario">
+        <label for="sync-grande-airbnb">Cabaña Grande · Airbnb</label>
+        <textarea id="sync-grande-airbnb" rows="2"></textarea>
+        <label for="sync-grande-booking">Cabaña Grande · Booking</label>
+        <textarea id="sync-grande-booking" rows="2"></textarea>
+        <label for="sync-pequena-airbnb">Cabina Pequeña · Airbnb</label>
+        <textarea id="sync-pequena-airbnb" rows="2"></textarea>
+        <label for="sync-pequena-booking">Cabina Pequeña · Booking</label>
+        <textarea id="sync-pequena-booking" rows="2"></textarea>
+        <p class="error-texto" id="sync-mensaje"></p>
+        <button type="button" class="btn" id="btn-guardar-sync">Guardar enlaces</button>
+        <button type="button" class="btn" id="btn-sincronizar">Sincronizar ahora</button>
       </form>
     </section>
   </main>
@@ -933,9 +955,172 @@
         vistaReservas.hidden = destino !== "reservas";
         vistaBitacora.hidden = destino !== "bitacora";
         vistaAjustes.hidden = destino !== "ajustes";
+        document.getElementById("vista-sincronizacion").hidden = destino !== "sincronizacion";
         if (destino === "bitacora") cargarBitacora();
         if (destino === "ajustes") mostrarDatosPago();
+        if (destino === "sincronizacion") cargarSync();
       });
+    });
+
+    /* =========================================================
+       SINCRONIZACIÓN CON AIRBNB Y BOOKING (iCal)
+       Los enlaces se guardan en ajustes/sincronizacion.
+       Las noches leídas se guardan como bloqueos "reservado".
+       ========================================================= */
+    const SYNC_FUENTES = [
+      { clave: "grande-airbnb", cabana: "Cabaña Grande", input: "sync-grande-airbnb" },
+      { clave: "grande-booking", cabana: "Cabaña Grande", input: "sync-grande-booking" },
+      { clave: "pequena-airbnb", cabana: "Cabina Pequeña", input: "sync-pequena-airbnb" },
+      { clave: "pequena-booking", cabana: "Cabina Pequeña", input: "sync-pequena-booking" }
+    ];
+    const REF_SYNC = doc(db, "ajustes", "sincronizacion");
+
+    function mostrarSyncMensaje(texto, esError) {
+      const msg = document.getElementById("sync-mensaje");
+      msg.textContent = texto;
+      msg.classList.toggle("error-texto", !!esError);
+    }
+
+    function leerEnlacesFormulario() {
+      const enlaces = {};
+      SYNC_FUENTES.forEach(function (f) {
+        enlaces[f.clave] = document.getElementById(f.input).value.trim();
+      });
+      return enlaces;
+    }
+
+    async function cargarSync() {
+      try {
+        const snap = await getDoc(REF_SYNC);
+        const enlaces = snap.exists() ? (snap.data().enlaces || {}) : {};
+        SYNC_FUENTES.forEach(function (f) {
+          document.getElementById(f.input).value = enlaces[f.clave] || "";
+        });
+      } catch (error) {
+        console.warn("No se pudieron cargar los enlaces:", error);
+      }
+    }
+
+    // Convierte un calendario .ics en una lista de noches "AAAA-MM-DD"
+    function nochesDesdeIcs(texto) {
+      const lineas = texto.replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
+      const noches = [];
+      let inicio = null;
+      let fin = null;
+      let dentro = false;
+
+      lineas.forEach(function (linea) {
+        if (linea === "BEGIN:VEVENT") {
+          dentro = true;
+          inicio = null;
+          fin = null;
+          return;
+        }
+        if (linea === "END:VEVENT") {
+          if (dentro && inicio && fin) {
+            for (let d = new Date(inicio + "T00:00:00Z"), F = new Date(fin + "T00:00:00Z"); d < F; d.setUTCDate(d.getUTCDate() + 1)) {
+              noches.push(d.toISOString().slice(0, 10));
+            }
+          }
+          dentro = false;
+          return;
+        }
+        if (!dentro) return;
+
+        const sep = linea.indexOf(":");
+        if (sep === -1) return;
+        const clave = linea.slice(0, sep);
+        const dig = linea.slice(sep + 1, sep + 9);
+        if (dig.length !== 8) return;
+        const fecha = dig.slice(0, 4) + "-" + dig.slice(4, 6) + "-" + dig.slice(6, 8);
+
+        if (clave.indexOf("DTSTART") === 0) inicio = fecha;
+        if (clave.indexOf("DTEND") === 0) fin = fecha;
+      });
+
+      return Array.from(new Set(noches));
+    }
+
+    async function sincronizarFuente(f, enlace) {
+      const respuesta = await fetch("/api/importar?url=" + encodeURIComponent(enlace));
+      if (!respuesta.ok) throw new Error(await respuesta.text());
+
+      const noches = nochesDesdeIcs(await respuesta.text());
+      const sid = "sync-" + f.clave;
+
+      const snap = await getDocs(query(collection(db, "bloqueos"), where("cabana", "==", f.cabana)));
+      const ocupadasPorOtros = new Set();
+      const anteriores = [];
+
+      snap.forEach(function (d) {
+        const b = d.data();
+        if (b.solicitudId === sid) {
+          anteriores.push({ ref: d.ref, fecha: b.fecha });
+          return;
+        }
+        if (b.estado === "pendiente" && estaVencido(b)) return;
+        ocupadasPorOtros.add(b.fecha);
+      });
+
+      // No se pisan noches ocupadas por una reserva propia o por otra plataforma
+      const nuevas = noches.filter(function (n) { return !ocupadasPorOtros.has(n); });
+      const nuevasSet = new Set(nuevas);
+
+      const batch = writeBatch(db);
+      anteriores.forEach(function (a) {
+        if (!nuevasSet.has(a.fecha)) batch.delete(a.ref);
+      });
+      nuevas.forEach(function (n) {
+        batch.set(doc(db, "bloqueos", claveBloqueo(f.cabana, n)), {
+          cabana: f.cabana,
+          fecha: n,
+          estado: "reservado",
+          solicitudId: sid,
+          creadoEn: serverTimestamp()
+        });
+      });
+      await batch.commit();
+
+      return { noches: noches.length, omitidas: noches.length - nuevas.length };
+    }
+
+    document.getElementById("btn-guardar-sync").addEventListener("click", async function () {
+      try {
+        await setDoc(REF_SYNC, { enlaces: leerEnlacesFormulario(), actualizadoEn: serverTimestamp() });
+        mostrarSyncMensaje("Enlaces guardados.");
+      } catch (error) {
+        console.error(error);
+        mostrarSyncMensaje("No se pudieron guardar los enlaces.", true);
+      }
+    });
+
+    document.getElementById("btn-sincronizar").addEventListener("click", async function () {
+      const boton = this;
+      const enlaces = leerEnlacesFormulario();
+      const activas = SYNC_FUENTES.filter(function (f) { return enlaces[f.clave]; });
+
+      if (!activas.length) {
+        mostrarSyncMensaje("Pegue al menos un enlace.", true);
+        return;
+      }
+
+      boton.disabled = true;
+      mostrarSyncMensaje("Sincronizando…");
+      const resultados = [];
+      try {
+        for (const f of activas) {
+          const r = await sincronizarFuente(f, enlaces[f.clave]);
+          const plataforma = f.clave.split("-")[1];
+          resultados.push(f.cabana + " (" + plataforma + "): " + r.noches + " noches leídas" +
+            (r.omitidas ? ", " + r.omitidas + " ya ocupadas" : ""));
+        }
+        mostrarSyncMensaje("Sincronizado. " + resultados.join(" · "));
+      } catch (error) {
+        console.error(error);
+        mostrarSyncMensaje("No se pudo sincronizar: " + error.message, true);
+      } finally {
+        boton.disabled = false;
+      }
     });
 
     /* =========================================================
