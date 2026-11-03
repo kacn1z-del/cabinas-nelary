@@ -280,6 +280,15 @@
 
     .fechas { color: var(--verde); font-size: 0.95rem; margin-bottom: 6px; }
 
+    .resumen-pago {
+      font-size: 0.9rem;
+      color: var(--verde);
+      margin: 6px 0 4px;
+      padding: 8px 12px;
+      background: var(--crema-suave);
+      border-left: 2px solid var(--dorado);
+    }
+
     .contacto { font-size: 0.9rem; color: var(--gris); margin-bottom: 6px; word-break: break-word; }
     .contacto a { color: var(--verde-claro); }
 
@@ -332,6 +341,12 @@
     .historial li {
       padding: 6px 0;
       border-bottom: 1px dotted var(--crema-oscuro);
+    }
+
+    .pago-form {
+      display: grid;
+      gap: 16px;
+      margin-top: 14px;
     }
 
     .fotos {
@@ -537,6 +552,8 @@
       runTransaction,
       writeBatch,
       serverTimestamp,
+      updateDoc,
+      arrayUnion,
       Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import {
@@ -561,6 +578,20 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
+
+    /* =========================================================
+       CONFIGURACIÓN DE CORREO Y PAGOS
+       Reemplace los marcadores con los valores de EmailJS y del refugio.
+       Mientras estén los marcadores, los correos no se envían.
+       ========================================================= */
+    const EMAILJS = {
+      servicio: "PEGAR_SERVICE_ID",
+      plantilla: "PEGAR_TEMPLATE_ID",
+      clave: "PEGAR_PUBLIC_KEY"
+    };
+    const CORREO_REFUGIO = "PEGAR_CORREO_DEL_REFUGIO";
+    const DATOS_PAGO = "[Completar: cuenta SINPE o transferencia]";
+    const METODOS_PAGO = ["Transferencia", "SINPE Móvil", "Efectivo", "Tarjeta", "Otro"];
 
     const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 2 };
     const ETIQUETAS_ESTADO = {
@@ -711,6 +742,94 @@
         : url;
     }
 
+    function fmtColones(n) {
+      return "₡" + Number(n || 0).toLocaleString("es-CR");
+    }
+
+    /* =========================================================
+       PAGOS
+       El total se guarda en "precioTotal". Los pagos se guardan
+       en el arreglo "pagos" de la solicitud.
+       ========================================================= */
+    function resumenPago(s) {
+      const total = Number(s.precioTotal || 0);
+      const pagado = (s.pagos || []).reduce(function (suma, p) {
+        return suma + Number(p.monto || 0);
+      }, 0);
+      const saldo = Math.max(total - pagado, 0);
+      let estado = "pendiente";
+      if (total > 0 && pagado >= total) estado = "completo";
+      else if (pagado > 0) estado = "parcial";
+      return { total: total, pagado: pagado, saldo: saldo, estado: estado };
+    }
+
+    /* =========================================================
+       CORREOS (EmailJS)
+       ========================================================= */
+    // Abre el correo del celular o computadora con el mensaje ya escrito.
+    // El administrador revisa y toca "Enviar". No necesita EmailJS.
+    function enviarCorreo(para, asunto, mensaje) {
+      if (!para) return Promise.resolve(false);
+      try {
+        window.location.href =
+          "mailto:" + encodeURIComponent(para) +
+          "?subject=" + encodeURIComponent(asunto) +
+          "&body=" + encodeURIComponent(mensaje);
+        return Promise.resolve(true);
+      } catch (error) {
+        console.warn("No se pudo abrir el correo:", error);
+        return Promise.resolve(false);
+      }
+    }
+
+    function resumenEstadia(d) {
+      return "Cabaña: " + d.cabana + "\n" +
+        "Entrada: " + formatoLargo(d.entrada) + "\n" +
+        "Salida: " + formatoLargo(d.salida) + "\n" +
+        "Personas: " + d.personas + "\n";
+    }
+
+    function textoConfirmacion(d) {
+      let texto = "Hola " + d.nombre + ".\n\nSu reserva en Refugio NELARY está confirmada.\n\n" + resumenEstadia(d);
+      if (Number(d.precioTotal) > 0) {
+        const adelanto = Math.round(Number(d.precioTotal) * 0.5);
+        texto += "\nTotal: " + fmtColones(d.precioTotal) +
+          "\nAdelanto (50 %): " + fmtColones(adelanto) +
+          "\n\nDatos para el pago: " + DATOS_PAGO + "\n";
+      }
+      return texto + "\nGracias por elegirnos.\nRefugio NELARY";
+    }
+
+    function textoCambio(d) {
+      return "Hola " + d.nombre + ".\n\nSu reserva en Refugio NELARY fue modificada.\n\n" +
+        resumenEstadia(d) + "\nSi tiene alguna duda, responda a este correo.\n\nRefugio NELARY";
+    }
+
+    function textoCancelacion(s) {
+      return "Hola " + s.nombre + ".\n\nSu reserva en Refugio NELARY fue cancelada.\n\n" +
+        resumenEstadia(s) + "\nSi tiene alguna duda, responda a este correo.\n\nRefugio NELARY";
+    }
+
+    function textoRechazo(s) {
+      return "Hola " + s.nombre + ".\n\nLamentamos informarle que no pudimos confirmar su solicitud para estas fechas.\n\n" +
+        resumenEstadia(s) + "\nSi desea, puede escribirnos para buscar otras fechas.\n\nRefugio NELARY";
+    }
+
+    function textoPago(s, monto, metodo) {
+      const r = resumenPago(s);
+      return "Hola " + s.nombre + ".\n\nRecibimos su pago de " + fmtColones(monto) + " (" + metodo + ").\n\n" +
+        "Total de la estadía: " + fmtColones(r.total) + "\n" +
+        "Pagado hasta hoy: " + fmtColones(r.pagado) + "\n" +
+        "Saldo pendiente: " + fmtColones(r.saldo) + "\n\nGracias.\nRefugio NELARY";
+    }
+
+    function textoRecordatorio(s) {
+      const r = resumenPago(s);
+      return "Hola " + s.nombre + ".\n\nLe recordamos que tiene un saldo pendiente de " + fmtColones(r.saldo) +
+        " para su estadía del " + formatoLargo(s.entrada) + ".\n\n" +
+        "Datos para el pago: " + DATOS_PAGO + "\n\nRefugio NELARY";
+    }
+
     /* =========================================================
        REGISTRO DE HISTORIAL
        ========================================================= */
@@ -815,7 +934,7 @@
       } else if (s.estado === "bloqueada") {
         html += boton("editar", "Editar", true) + boton("cancelar", "Quitar bloqueo", true);
       }
-      html += boton("historial", "Historial", true) + boton("eliminar", "Eliminar", true);
+      html += boton("pagos", "Pagos", true) + boton("historial", "Historial", true) + boton("eliminar", "Eliminar", true);
       return html;
     }
 
@@ -828,6 +947,12 @@
       if (s.correo) partes.push('<a href="mailto:' + esc(s.correo) + '">' + esc(s.correo) + "</a>");
       if (tel) partes.push('<a href="https://wa.me/' + esc(numeroWa) + '" target="_blank" rel="noopener">WhatsApp</a>');
 
+      const r = resumenPago(s);
+      const resumen = Number(s.precioTotal) > 0
+        ? '<p class="resumen-pago">Total ' + fmtColones(r.total) + " · Pagado " + fmtColones(r.pagado) +
+          " · Saldo " + fmtColones(r.saldo) + " · " + r.estado + "</p>"
+        : "";
+
       return '<article class="tarjeta">' +
         '<div class="t-cab">' +
           '<span class="cab">' + esc(s.cabana) + " · " + esc(ETIQUETAS_CANAL[s.canal] || "Web propia") + "</span>" +
@@ -839,8 +964,10 @@
           " · " + esc(s.personas) + " personas</p>" +
         (partes.length ? '<p class="contacto">' + partes.join(" · ") + "</p>" : "") +
         (s.notas ? '<p class="notas">' + esc(s.notas) + "</p>" : "") +
+        resumen +
         '<div class="acciones">' + botonesDe(s) + "</div>" +
         '<div class="historial-box" data-historial="' + esc(s.id) + '" hidden></div>' +
+        '<div class="historial-box" data-pagos="' + esc(s.id) + '" hidden></div>' +
       "</article>";
     }
 
@@ -1025,6 +1152,15 @@
       });
 
       await registrarHistorial(solicitudId, accion, datos.cabana + " · " + datos.entrada + " → " + datos.salida + " · " + datos.personas + " personas");
+
+      // Correos al huésped
+      if (datos.correo && datos.estado === "confirmada") {
+        if (accion === "Confirmada") {
+          await enviarCorreo(datos.correo, "Reserva confirmada · Refugio NELARY", textoConfirmacion(datos));
+        } else if (accion === "Editada") {
+          await enviarCorreo(datos.correo, "Cambio en su reserva · Refugio NELARY", textoCambio(datos));
+        }
+      }
     }
 
     function datosDeSolicitud(s, estado) {
@@ -1039,6 +1175,7 @@
         correo: s.correo || "",
         notas: s.notas || "",
         canal: s.canal || "web",
+        precioTotal: s.precioTotal || 0,
         estado: estado
       };
     }
@@ -1061,6 +1198,25 @@
       }
       if (accion === "historial") {
         alternarHistorial(s, boton);
+        return;
+      }
+      if (accion === "pagos") {
+        alternarPagos(s, boton);
+        return;
+      }
+
+      const caja = boton.closest(".historial-box");
+
+      if (accion === "guardar-precio") {
+        await guardarPrecio(s, caja, boton);
+        return;
+      }
+      if (accion === "registrar-pago") {
+        await registrarPago(s, caja, boton);
+        return;
+      }
+      if (accion === "recordar-saldo") {
+        await recordarSaldo(s, boton);
         return;
       }
 
@@ -1098,6 +1254,14 @@
       await batch.commit();
 
       await registrarHistorial(s.id, ETIQUETAS_ESTADO[estado], "Estado cambiado a " + ETIQUETAS_ESTADO[estado].toLowerCase());
+
+      if (s.correo) {
+        if (estado === "cancelada") {
+          await enviarCorreo(s.correo, "Reserva cancelada · Refugio NELARY", textoCancelacion(s));
+        } else if (estado === "rechazada") {
+          await enviarCorreo(s.correo, "Solicitud de reserva · Refugio NELARY", textoRechazo(s));
+        }
+      }
     }
 
     async function eliminar(s) {
@@ -1141,6 +1305,147 @@
         console.error(error);
         contenedor.innerHTML = '<p class="vacio error">No pudimos cargar el historial.</p>';
       }
+    }
+
+    /* =========================================================
+       PAGOS: VISTA, PRECIO, REGISTRO Y RECORDATORIOS
+       ========================================================= */
+    function alternarPagos(s, boton) {
+      const caja = lista.querySelector('[data-pagos="' + s.id + '"]');
+      if (!caja) return;
+
+      if (!caja.hidden) {
+        caja.hidden = true;
+        boton.textContent = "Pagos";
+        return;
+      }
+
+      caja.hidden = false;
+      boton.textContent = "Ocultar pagos";
+      renderPagos(s, caja);
+    }
+
+    function renderPagos(s, caja) {
+      const r = resumenPago(s);
+      const opciones = METODOS_PAGO.map(function (m) {
+        return '<option value="' + esc(m) + '">' + esc(m) + "</option>";
+      }).join("");
+      const pagos = (s.pagos || []).map(function (p) {
+        return "<li><strong>" + esc(fmtColones(p.monto)) + "</strong> · " + esc(p.metodo) +
+          (p.referencia ? " · ref. " + esc(p.referencia) : "") +
+          " · " + esc(fechaHora(p.fecha)) + "</li>";
+      }).join("");
+
+      const puedeRecordar = r.saldo > 0 && s.correo && s.estado === "confirmada";
+
+      caja.innerHTML =
+        '<div class="resumen-pago">Total ' + fmtColones(r.total) + " · Pagado " + fmtColones(r.pagado) +
+          " · Saldo " + fmtColones(r.saldo) + " · " + esc(r.estado) + "</div>" +
+        (pagos ? '<ul class="historial">' + pagos + "</ul>" : '<p class="ayuda">Sin pagos registrados.</p>') +
+        '<div class="pago-form">' +
+          '<div class="fila2">' +
+            "<div>" +
+              '<label>Precio total (₡)</label>' +
+              '<input type="number" min="0" data-precio value="' + esc(r.total) + '">' +
+            "</div>" +
+            '<div class="acciones"><button type="button" data-accion="guardar-precio" data-id="' + esc(s.id) + '">Guardar precio</button></div>' +
+          "</div>" +
+          '<div class="fila2">' +
+            "<div>" +
+              '<label>Monto recibido (₡)</label>' +
+              '<input type="number" min="1" data-monto>' +
+            "</div>" +
+            "<div>" +
+              '<label>Método</label>' +
+              '<select data-metodo>' + opciones + "</select>" +
+            "</div>" +
+          "</div>" +
+          '<div class="fila2">' +
+            "<div>" +
+              '<label>Referencia (opcional)</label>' +
+              '<input type="text" data-referencia maxlength="80">' +
+            "</div>" +
+            '<div class="acciones"><button type="button" data-accion="registrar-pago" data-id="' + esc(s.id) + '">Registrar pago</button></div>' +
+          "</div>" +
+        "</div>" +
+        (puedeRecordar
+          ? '<div class="acciones"><button type="button" class="sec" data-accion="recordar-saldo" data-id="' + esc(s.id) + '">Enviar recordatorio de saldo</button></div>'
+          : "");
+    }
+
+    async function guardarPrecio(s, caja, boton) {
+      const valor = Number(caja.querySelector("[data-precio]").value);
+      if (!(valor >= 0)) {
+        alert("Escriba un precio válido.");
+        return;
+      }
+
+      boton.disabled = true;
+      try {
+        await updateDoc(doc(db, "solicitudes", s.id), { precioTotal: valor });
+        s.precioTotal = valor;
+        await registrarHistorial(s.id, "Precio actualizado", fmtColones(valor));
+        renderPagos(s, caja);
+        render();
+        alternarPagosAbierto(s);
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo guardar el precio. Intente de nuevo.");
+        boton.disabled = false;
+      }
+    }
+
+    async function registrarPago(s, caja, boton) {
+      const monto = Number(caja.querySelector("[data-monto]").value);
+      const metodo = caja.querySelector("[data-metodo]").value;
+      const referencia = caja.querySelector("[data-referencia]").value.trim();
+
+      if (!(monto > 0)) {
+        alert("Escriba el monto recibido.");
+        return;
+      }
+
+      const pago = { monto: monto, metodo: metodo, referencia: referencia, fecha: Timestamp.now() };
+
+      boton.disabled = true;
+      try {
+        await updateDoc(doc(db, "solicitudes", s.id), { pagos: arrayUnion(pago) });
+        s.pagos = (s.pagos || []).concat([pago]);
+        await registrarHistorial(s.id, "Pago registrado", fmtColones(monto) + " · " + metodo + (referencia ? " · ref. " + referencia : ""));
+
+        const enviado = s.correo
+          ? await enviarCorreo(s.correo, "Pago recibido · Refugio NELARY", textoPago(s, monto, metodo))
+          : false;
+        if (s.correo && !enviado) {
+          alert("El pago quedó registrado, pero el correo no se pudo enviar.");
+        }
+
+        renderPagos(s, caja);
+        render();
+        alternarPagosAbierto(s);
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo registrar el pago. Intente de nuevo.");
+      } finally {
+        boton.disabled = false;
+      }
+    }
+
+    async function recordarSaldo(s, boton) {
+      boton.disabled = true;
+      const enviado = await enviarCorreo(s.correo, "Recordatorio de saldo · Refugio NELARY", textoRecordatorio(s));
+      alert(enviado ? "Recordatorio enviado." : "No se pudo enviar el recordatorio. Revise la configuración de correo.");
+      boton.disabled = false;
+    }
+
+    // Vuelve a dejar abierta la caja de pagos después de re-dibujar la lista
+    function alternarPagosAbierto(s) {
+      const caja = lista.querySelector('[data-pagos="' + s.id + '"]');
+      if (!caja) return;
+      caja.hidden = false;
+      renderPagos(s, caja);
+      const boton = lista.querySelector('button[data-accion="pagos"][data-id="' + s.id + '"]');
+      if (boton) boton.textContent = "Ocultar pagos";
     }
 
     /* =========================================================
