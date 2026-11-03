@@ -413,6 +413,7 @@
     <nav class="tabs">
       <button type="button" class="tab activo" data-tab="reservas">Reservas</button>
       <button type="button" class="tab" data-tab="bitacora">Bitácora de limpieza</button>
+      <button type="button" class="tab" data-tab="ajustes">Datos de pago</button>
     </nav>
 
     <!-- VISTA RESERVAS -->
@@ -534,6 +535,20 @@
       </div>
       <div id="lista-bitacora"></div>
     </section>
+
+    <!-- VISTA DATOS DE PAGO -->
+    <section id="vista-ajustes" hidden>
+      <div class="barra">
+        <h1>Datos de pago</h1>
+      </div>
+      <p class="ayuda">Este texto aparece en los correos de confirmación y de recordatorio de saldo. Puede cambiarlo cuando quiera. Escriba cuentas BAC, IBAN y SINPE, una por línea.</p>
+      <form id="form-ajustes" class="formulario">
+        <label for="ajustes-texto">Datos para el pago</label>
+        <textarea id="ajustes-texto" rows="8" maxlength="1000"></textarea>
+        <p class="error-texto" id="ajustes-mensaje"></p>
+        <button type="submit" class="btn" id="btn-guardar-ajustes">Guardar datos de pago</button>
+      </form>
+    </section>
   </main>
 
   <script type="module">
@@ -542,6 +557,8 @@
       getFirestore,
       collection,
       doc,
+      getDoc,
+      setDoc,
       getDocs,
       addDoc,
       deleteDoc,
@@ -590,7 +607,8 @@
       clave: "PEGAR_PUBLIC_KEY"
     };
     const CORREO_REFUGIO = "PEGAR_CORREO_DEL_REFUGIO";
-    const DATOS_PAGO = "[Completar: cuenta SINPE o transferencia]";
+    // Se reemplaza con lo guardado en Firestore (config/datosPago) al entrar al panel
+    let DATOS_PAGO = "[Completar: cuenta SINPE o transferencia]";
     const METODOS_PAGO = ["Transferencia", "SINPE Móvil", "Efectivo", "Tarjeta", "Otro"];
 
     const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 2 };
@@ -630,6 +648,11 @@
 
     const vistaReservas = document.getElementById("vista-reservas");
     const vistaBitacora = document.getElementById("vista-bitacora");
+    const vistaAjustes = document.getElementById("vista-ajustes");
+    const formAjustes = document.getElementById("form-ajustes");
+    const ajustesTexto = document.getElementById("ajustes-texto");
+    const ajustesMensaje = document.getElementById("ajustes-mensaje");
+    const btnGuardarAjustes = document.getElementById("btn-guardar-ajustes");
     const filtro = document.getElementById("filtro");
     const lista = document.getElementById("lista");
     const btnNueva = document.getElementById("btn-nueva");
@@ -878,6 +901,7 @@
         pantallaPanel.hidden = false;
         btnSalir.hidden = false;
         cargarSolicitudes();
+        cargarDatosPago();
       } else {
         pantallaPanel.hidden = true;
         btnSalir.hidden = true;
@@ -898,8 +922,56 @@
         });
         vistaReservas.hidden = destino !== "reservas";
         vistaBitacora.hidden = destino !== "bitacora";
+        vistaAjustes.hidden = destino !== "ajustes";
         if (destino === "bitacora") cargarBitacora();
+        if (destino === "ajustes") mostrarDatosPago();
       });
+    });
+
+    /* =========================================================
+       DATOS DE PAGO (se guardan en config/datosPago)
+       ========================================================= */
+    const REF_DATOS_PAGO = doc(db, "ajustes", "datosPago");
+
+    async function cargarDatosPago() {
+      try {
+        const snap = await getDoc(REF_DATOS_PAGO);
+        if (snap.exists() && typeof snap.data().texto === "string") {
+          DATOS_PAGO = snap.data().texto;
+        }
+      } catch (error) {
+        console.warn("No se pudieron cargar los datos de pago:", error);
+      }
+    }
+
+    function mostrarDatosPago() {
+      ajustesTexto.value = DATOS_PAGO.indexOf("[Completar") === 0 ? "" : DATOS_PAGO;
+      ajustesMensaje.textContent = "";
+      ajustesMensaje.classList.remove("error-texto");
+    }
+
+    formAjustes.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const texto = ajustesTexto.value.trim();
+      if (!texto) {
+        ajustesMensaje.textContent = "Escriba los datos de pago antes de guardar.";
+        ajustesMensaje.classList.add("error-texto");
+        return;
+      }
+
+      btnGuardarAjustes.disabled = true;
+      try {
+        await setDoc(REF_DATOS_PAGO, { texto: texto, actualizadoEn: serverTimestamp() });
+        DATOS_PAGO = texto;
+        ajustesMensaje.textContent = "Datos de pago guardados.";
+        ajustesMensaje.classList.remove("error-texto");
+      } catch (error) {
+        console.error(error);
+        ajustesMensaje.textContent = "No se pudieron guardar. Revise que su cuenta esté autorizada.";
+        ajustesMensaje.classList.add("error-texto");
+      } finally {
+        btnGuardarAjustes.disabled = false;
+      }
     });
 
     /* =========================================================
