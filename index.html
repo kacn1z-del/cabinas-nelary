@@ -1339,7 +1339,25 @@
     const db = getFirestore(app);
 
     const CABANAS = ["Cabaña Grande", "Cabina Pequeña"];
-    const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 2 };
+    const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 4 };
+
+    /* =========================================================
+       TARIFAS POR NOCHE
+       Cabina Pequeña: ₡45 000 por 2 personas; ₡5 000 extra por persona (hasta 4).
+       Cabaña Grande: ₡55 000 por 2 a 6 personas; ₡5 000 extra por persona (hasta 8).
+       ========================================================= */
+    function precioNoche(cabana, personas) {
+      if (cabana === "Cabina Pequeña") return 45000 + Math.max(0, personas - 2) * 5000;
+      return 55000 + Math.max(0, personas - 6) * 5000;
+    }
+
+    function calcularTotal(cabana, personas, noches) {
+      return precioNoche(cabana, personas) * noches;
+    }
+
+    function fmtColones(n) {
+      return "₡" + Number(n).toLocaleString("es-CR");
+    }
 
     /* =========================================================
        IDIOMA
@@ -1439,6 +1457,7 @@
         calToca: "Toca la fecha de entrada.",
         calEntrada: (f) => "Entrada: " + f + ". Ahora elige la fecha de salida.",
         calResumen: (n, desde, hasta) => (n === 1 ? "1 noche" : n + " noches") + " · del " + desde + " al " + hasta,
+        calPrecio: (total, adelanto) => "Total " + total + " · Adelanto (50 %) " + adelanto,
         conEyebrow: "Contacto",
         conTitulo: "Hablemos",
         conSub: "¿Tienes alguna pregunta antes de reservar? Con gusto te ayudamos.",
@@ -1548,6 +1567,7 @@
         calToca: "Tap your check-in date.",
         calEntrada: (f) => "Check-in: " + f + ". Now choose your check-out date.",
         calResumen: (n, desde, hasta) => (n === 1 ? "1 night" : n + " nights") + " · from " + desde + " to " + hasta,
+        calPrecio: (total, adelanto) => "Total " + total + " · Deposit (50 %) " + adelanto,
         conEyebrow: "Contact",
         conTitulo: "Let's talk",
         conSub: "Do you have any questions before booking? We're happy to help.",
@@ -1858,7 +1878,9 @@
         calResumen.textContent = t("calError");
       } else if (entradaSel && salidaSel) {
         const noches = Math.round((fechaDesdeTexto(salidaSel) - fechaDesdeTexto(entradaSel)) / 86400000);
-        calResumen.textContent = t("calResumen")(noches, formatoCorto(entradaSel), formatoCorto(salidaSel));
+        const total = calcularTotal(cabana, Number(personasInput.value) || 2, noches);
+        calResumen.textContent = t("calResumen")(noches, formatoCorto(entradaSel), formatoCorto(salidaSel)) +
+          " · " + t("calPrecio")(fmtColones(total), fmtColones(Math.round(total * 0.5)));
       } else if (entradaSel) {
         calResumen.textContent = t("calEntrada")(formatoCorto(entradaSel));
       } else {
@@ -1970,6 +1992,7 @@
         entrada: entradaSel,
         salida: salidaSel,
         personas: Number(personasInput.value),
+        precioTotal: calcularTotal(cabana, Number(personasInput.value), noches.length),
         nombre: document.getElementById("nombre").value.trim(),
         telefono: document.getElementById("telefono").value.trim(),
         correo: document.getElementById("correo").value.trim(),
