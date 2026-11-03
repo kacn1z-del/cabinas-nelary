@@ -827,9 +827,9 @@
       if (Number(d.precioTotal) > 0) {
         const adelanto = Math.round(Number(d.precioTotal) * 0.5);
         texto += "\nTotal: " + fmtColones(d.precioTotal) +
-          "\nAdelanto (50 %): " + fmtColones(adelanto) +
-          "\n\nDatos para el pago: " + DATOS_PAGO + "\n";
+          "\nAdelanto (50 %): " + fmtColones(adelanto) + "\n";
       }
+      texto += "\nDatos para el pago:\n" + DATOS_PAGO + "\n";
       return texto + "\nGracias por elegirnos.\nRefugio NELARY";
     }
 
