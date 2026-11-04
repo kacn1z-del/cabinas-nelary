@@ -145,6 +145,76 @@
       padding: 24px 22px 60px;
     }
 
+    /* ---------- CALENDARIO ---------- */
+    .cal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      text-transform: capitalize;
+      font-size: 1.1rem;
+    }
+    .cal-nav .sec { width: auto; padding: 6px 14px; }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .cal-cabecera {
+      text-align: center;
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+      color: var(--gris);
+      padding: 4px 0;
+    }
+    .cal-dia {
+      aspect-ratio: 1;
+      border: 1px solid var(--crema-oscuro);
+      background: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 0;
+      position: relative;
+    }
+    .cal-dia.vacia { border: none; background: none; cursor: default; }
+    .cal-dia.confirmada { background: #D8EAD9; }
+    .cal-dia.nueva { background: #F7ECC8; }
+    .cal-dia.completada { background: #E6E6E6; }
+    .cal-dia.airbnb { background: #DFE9F5; }
+    .cal-dia.otro { background: #EFD6D6; }
+    .cal-dia.sel { outline: 2px solid var(--verde); outline-offset: -2px; }
+    .cal-dia.hoy { font-weight: bold; text-decoration: underline; }
+    .cal-leyenda {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.75rem;
+      color: var(--gris);
+      margin: 14px 0 22px;
+    }
+    .cal-color {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 6px;
+      vertical-align: middle;
+      border: 1px solid var(--crema-oscuro);
+    }
+    .cal-color.confirmada { background: #D8EAD9; }
+    .cal-color.nueva { background: #F7ECC8; }
+    .cal-color.airbnb { background: #DFE9F5; }
+    .cal-color.otro { background: #EFD6D6; }
+    .cal-detalle {
+      background: #fff;
+      border: 1px solid var(--crema-oscuro);
+      padding: 18px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .cal-detalle h3 { font-size: 1.15rem; margin-bottom: 8px; }
+    .cal-detalle .fila { color: var(--gris); }
+    .cal-detalle .bloque { border-top: 1px dotted var(--crema-oscuro); margin-top: 12px; padding-top: 12px; }
+
     .tabs {
       display: flex;
       border-bottom: 1px solid var(--crema-oscuro);
@@ -415,6 +485,7 @@
       <button type="button" class="tab" data-tab="bitacora">Bitácora de limpieza</button>
       <button type="button" class="tab" data-tab="ajustes">Datos de pago</button>
       <button type="button" class="tab" data-tab="sincronizacion">Sincronización</button>
+      <button type="button" class="tab" data-tab="calendario">Calendario</button>
     </nav>
 
     <!-- VISTA RESERVAS -->
@@ -570,6 +641,32 @@
         <button type="button" class="btn" id="btn-guardar-sync">Guardar enlaces</button>
         <button type="button" class="btn" id="btn-sincronizar">Sincronizar ahora</button>
       </form>
+    </section>
+
+    <!-- VISTA CALENDARIO -->
+    <section id="vista-calendario" hidden>
+      <div class="barra">
+        <h1>Calendario</h1>
+        <div class="controles">
+          <select id="cal-cabana" aria-label="Cabaña">
+            <option value="Cabaña Grande">Cabaña Grande</option>
+            <option value="Cabina Pequeña">Cabina Pequeña</option>
+          </select>
+        </div>
+      </div>
+      <div class="cal-nav">
+        <button type="button" class="sec" id="cal-ant" aria-label="Mes anterior">‹</button>
+        <span id="cal-titulo"></span>
+        <button type="button" class="sec" id="cal-sig" aria-label="Mes siguiente">›</button>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-leyenda">
+        <span><i class="cal-color confirmada"></i>Confirmada</span>
+        <span><i class="cal-color nueva"></i>Nueva</span>
+        <span><i class="cal-color airbnb"></i>Airbnb</span>
+        <span><i class="cal-color otro"></i>Otro bloqueo</span>
+      </div>
+      <div id="cal-detalle" class="cal-detalle"></div>
     </section>
   </main>
 
@@ -966,6 +1063,8 @@
         if (destino === "bitacora") cargarBitacora();
         if (destino === "ajustes") mostrarDatosPago();
         if (destino === "sincronizacion") cargarSync();
+        document.getElementById("vista-calendario").hidden = destino !== "calendario";
+        if (destino === "calendario") cargarCalendario();
       });
     });
 
@@ -1133,6 +1232,149 @@
     /* =========================================================
        DATOS DE PAGO (se guardan en config/datosPago)
        ========================================================= */
+    /* =========================================================
+       CALENDARIO DE RESERVAS
+       Muestra un mes por cabaña. Al tocar un día, se ven los detalles.
+       ========================================================= */
+    const CAL_DIAS_CORTOS = ["L", "M", "M", "J", "V", "S", "D"];
+    let calCabana = "Cabaña Grande";
+    let calMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    let calDia = null;
+    let calBloqueos = [];
+
+    function fechaTextoCal(d) {
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dia = String(d.getDate()).padStart(2, "0");
+      return d.getFullYear() + "-" + m + "-" + dia;
+    }
+
+    // Clase de color y etiqueta según de dónde viene el bloqueo
+    function infoBloqueo(b) {
+      const sid = b.solicitudId || "";
+      if (sid.indexOf("sync-") === 0) return { clase: "airbnb", etiqueta: "Airbnb" };
+      const s = solicitudes.find(function (x) { return x.id === sid; });
+      if (!s) return { clase: "otro", etiqueta: "Bloqueo" };
+      if (s.estado === "confirmada" || s.estado === "completada") {
+        return { clase: s.estado === "completada" ? "completada" : "confirmada", etiqueta: ETIQUETAS_ESTADO[s.estado] };
+      }
+      if (s.estado === "nueva") return { clase: "nueva", etiqueta: "Nueva" };
+      return { clase: "otro", etiqueta: ETIQUETAS_ESTADO[s.estado] || "Bloqueo" };
+    }
+
+    async function cargarCalendario() {
+      try {
+        await cargarSolicitudes();
+        const snap = await getDocs(collection(db, "bloqueos"));
+        calBloqueos = snap.docs.map(function (d) { return d.data(); }).filter(function (b) { return !estaVencido(b); });
+      } catch (error) {
+        console.error(error);
+      }
+      renderCalendario();
+    }
+
+    function renderCalendario() {
+      const anio = calMes.getFullYear();
+      const mes = calMes.getMonth();
+      document.getElementById("cal-titulo").textContent = calMes.toLocaleDateString("es-CR", { month: "long", year: "numeric" });
+
+      const grid = document.getElementById("cal-grid");
+      let html = "";
+      CAL_DIAS_CORTOS.forEach(function (d) {
+        html += '<div class="cal-cabecera">' + d + "</div>";
+      });
+
+      const primerDia = (new Date(anio, mes, 1).getDay() + 6) % 7;
+      for (let v = 0; v < primerDia; v++) html += '<div class="cal-dia vacia"></div>';
+
+      const diasDelMes = new Date(anio, mes + 1, 0).getDate();
+      const hoyTexto = fechaTextoCal(new Date());
+      for (let dia = 1; dia <= diasDelMes; dia++) {
+        const texto = fechaTextoCal(new Date(anio, mes, dia));
+        const deEsteDia = calBloqueos.filter(function (b) { return b.cabana === calCabana && b.fecha === texto; });
+        const clase = deEsteDia.length ? infoBloqueo(deEsteDia[0]).clase : "";
+        html += '<button type="button" class="cal-dia ' + clase +
+          (texto === calDia ? " sel" : "") + (texto === hoyTexto ? " hoy" : "") +
+          '" data-fecha="' + texto + '">' + dia + "</button>";
+      }
+
+      grid.innerHTML = html;
+      renderDetalleCal();
+    }
+
+    function renderDetalleCal() {
+      const caja = document.getElementById("cal-detalle");
+      if (!calDia) {
+        caja.innerHTML = '<p class="vacio">Toque un día para ver la reserva.</p>';
+        return;
+      }
+
+      const bloques = calBloqueos.filter(function (b) { return b.cabana === calCabana && b.fecha === calDia; });
+      if (!bloques.length) {
+        caja.innerHTML = "<h3>" + esc(formatoLargo(calDia)) + "</h3><p>Libre en " + esc(calCabana) + ".</p>";
+        return;
+      }
+
+      let html = "<h3>" + esc(formatoLargo(calDia)) + " · " + esc(calCabana) + "</h3>";
+      const vistos = new Set();
+
+      bloques.forEach(function (b) {
+        if (vistos.has(b.solicitudId)) return;
+        vistos.add(b.solicitudId);
+
+        const info = infoBloqueo(b);
+        if (info.etiqueta === "Airbnb") {
+          html += '<div class="bloque"><p><strong>Airbnb</strong></p><p class="fila">Bloqueo sincronizado. No tiene datos del huésped.</p></div>';
+          return;
+        }
+
+        const s = solicitudes.find(function (x) { return x.id === b.solicitudId; });
+        if (!s) {
+          html += '<div class="bloque"><p class="fila">Bloqueo manual sin reserva asociada.</p></div>';
+          return;
+        }
+
+        const pago = resumenPago(s);
+        html += '<div class="bloque">' +
+          "<p><strong>" + esc(s.nombre || "Sin nombre") + "</strong> · " + esc(info.etiqueta) + "</p>" +
+          '<p class="fila">' + esc(formatoLargo(s.entrada)) + " → " + esc(formatoLargo(s.salida)) + "</p>" +
+          '<p class="fila">Personas: ' + esc(String(s.personas || "")) + "</p>" +
+          (s.telefono ? '<p class="fila">Teléfono: ' + esc(s.telefono) + "</p>" : "") +
+          (s.correo ? '<p class="fila">Correo: ' + esc(s.correo) + "</p>" : "") +
+          (s.notas ? '<p class="fila">Notas: ' + esc(s.notas) + "</p>" : "") +
+          (pago.total > 0
+            ? '<p class="fila">Total: ' + esc(fmtColones(pago.total)) +
+              " · Pagado: " + esc(fmtColones(pago.pagado)) +
+              " · Saldo: " + esc(fmtColones(pago.saldo)) + "</p>"
+            : '<p class="fila">Sin precio registrado.</p>') +
+          "</div>";
+      });
+
+      caja.innerHTML = html;
+    }
+
+    document.getElementById("cal-grid").addEventListener("click", function (e) {
+      const boton = e.target.closest("[data-fecha]");
+      if (!boton) return;
+      calDia = boton.dataset.fecha;
+      renderCalendario();
+    });
+
+    document.getElementById("cal-ant").addEventListener("click", function () {
+      calMes = new Date(calMes.getFullYear(), calMes.getMonth() - 1, 1);
+      renderCalendario();
+    });
+
+    document.getElementById("cal-sig").addEventListener("click", function () {
+      calMes = new Date(calMes.getFullYear(), calMes.getMonth() + 1, 1);
+      renderCalendario();
+    });
+
+    document.getElementById("cal-cabana").addEventListener("change", function () {
+      calCabana = this.value;
+      calDia = null;
+      renderCalendario();
+    });
+
     const REF_DATOS_PAGO = doc(db, "ajustes", "datosPago");
 
     async function cargarDatosPago() {
