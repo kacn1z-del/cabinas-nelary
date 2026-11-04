@@ -215,6 +215,87 @@
     .cal-detalle .fila { color: var(--gris); }
     .cal-detalle .bloque { border-top: 1px dotted var(--crema-oscuro); margin-top: 12px; padding-top: 12px; }
 
+    .cal-color.libre { background: #EAF3EC; }
+    .cal-color.completada { background: #E6E6E6; }
+
+    /* ---------- SALÓN (plano de cabañas por días) ---------- */
+    .salon-cabana {
+      background: #fff;
+      border: 1px solid var(--crema-oscuro);
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+    .salon-cabana h3 { font-size: 1.1rem; margin-bottom: 12px; }
+    .salon-fila {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .salon-dia {
+      flex: 0 0 calc((100% - 48px) / 7);
+      max-width: 72px;
+      aspect-ratio: 1 / 1;
+      border-radius: 10px;
+      border: 1px solid;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3px;
+      font-family: var(--sans);
+      font-size: 0.8rem;
+      line-height: 1.1;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform 0.12s ease;
+    }
+    .salon-dia:hover { transform: scale(1.05); }
+    .salon-num { font-size: 1.05rem; font-weight: 600; }
+    .salon-sem { font-size: 0.6rem; letter-spacing: 1px; opacity: 0.8; }
+    .salon-dia small {
+      font-size: 0.58rem;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .salon-libre { background: #EAF3EC; border-color: #3B6A4D; color: var(--verde); }
+    .salon-confirmada { background: var(--rojo); border-color: #5A231C; color: #fff; }
+    .salon-nueva { background: #F7ECC8; border-color: var(--dorado); color: var(--texto); }
+    .salon-airbnb { background: #DFE9F5; border-color: #5B7DB1; color: #2B4A74; }
+    .salon-otro { background: #EFD6D6; border-color: #B06A60; color: var(--texto); }
+    .salon-completada { background: #E6E6E6; border-color: #9A9A9A; color: var(--gris); }
+
+    .salon-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(34, 65, 47, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 60;
+    }
+    .salon-caja {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+      border-radius: 14px;
+    }
+    .salon-cerrar {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      color: var(--gris);
+      cursor: pointer;
+    }
+
     .tabs {
       display: flex;
       border-bottom: 1px solid var(--crema-oscuro);
@@ -482,6 +563,7 @@
   <main class="panel" id="pantalla-panel" hidden>
     <nav class="tabs">
       <button type="button" class="tab activo" data-tab="reservas">Reservas</button>
+      <button type="button" class="tab" data-tab="salon">Salón</button>
       <button type="button" class="tab" data-tab="bitacora">Bitácora de limpieza</button>
       <button type="button" class="tab" data-tab="ajustes">Datos de pago</button>
       <button type="button" class="tab" data-tab="sincronizacion">Sincronización</button>
@@ -641,6 +723,37 @@
         <button type="button" class="btn" id="btn-guardar-sync">Guardar enlaces</button>
         <button type="button" class="btn" id="btn-sincronizar">Sincronizar ahora</button>
       </form>
+    </section>
+
+    <!-- VISTA SALÓN -->
+    <section id="vista-salon" hidden>
+      <div class="barra">
+        <h1>Salón</h1>
+        <div class="controles">
+          <button type="button" class="sec" id="salon-hoy">Hoy</button>
+        </div>
+      </div>
+      <div class="cal-nav">
+        <button type="button" class="sec" id="salon-ant" aria-label="Semana anterior">‹</button>
+        <span id="salon-titulo"></span>
+        <button type="button" class="sec" id="salon-sig" aria-label="Semana siguiente">›</button>
+      </div>
+      <div class="cal-leyenda">
+        <span><i class="cal-color libre"></i>Libre</span>
+        <span><i class="cal-color confirmada"></i>Ocupada</span>
+        <span><i class="cal-color nueva"></i>Nueva</span>
+        <span><i class="cal-color airbnb"></i>Airbnb</span>
+        <span><i class="cal-color otro"></i>Otro bloqueo</span>
+        <span><i class="cal-color completada"></i>Completada</span>
+      </div>
+      <div id="salon-grid"></div>
+
+      <div id="salon-overlay" class="salon-overlay" hidden>
+        <div class="salon-caja cal-detalle">
+          <button type="button" class="salon-cerrar" data-cerrar aria-label="Cerrar">✕</button>
+          <div id="salon-detalle"></div>
+        </div>
+      </div>
     </section>
 
     <!-- VISTA CALENDARIO -->
@@ -1065,6 +1178,9 @@
         if (destino === "sincronizacion") cargarSync();
         document.getElementById("vista-calendario").hidden = destino !== "calendario";
         if (destino === "calendario") cargarCalendario();
+        document.getElementById("vista-salon").hidden = destino !== "salon";
+        if (destino === "salon") cargarCalendario();
+        if (destino !== "salon") cerrarSalonDetalle();
       });
     });
 
@@ -1283,6 +1399,7 @@
         console.error(error);
       }
       renderCalendario();
+      renderSalon();
     }
 
     function renderCalendario() {
@@ -1314,8 +1431,7 @@
       renderDetalleCal();
     }
 
-    function renderDetalleCal() {
-      const caja = document.getElementById("cal-detalle");
+    function renderDetalleCal(caja = document.getElementById("cal-detalle")) {
       if (!calDia) {
         caja.innerHTML = '<p class="vacio">Toque un día para ver la reserva.</p>';
         return;
@@ -1395,6 +1511,7 @@
 
     /* ---------- Acciones desde el calendario ---------- */
     function irAPestana(nombre) {
+      cerrarSalonDetalle();
       document.querySelector('.tab[data-tab="' + nombre + '"]').click();
     }
 
@@ -1411,7 +1528,7 @@
       return '<div class="acciones">' + html + "</div>";
     }
 
-    document.getElementById("cal-detalle").addEventListener("click", async function (e) {
+    async function manejarAccionDetalle(e) {
       const boton = e.target.closest("button[data-accion]");
       if (!boton) return;
 
@@ -1447,6 +1564,123 @@
           : "No se pudo completar la acción. Intente de nuevo.");
         boton.disabled = false;
       }
+    }
+
+    document.getElementById("cal-detalle").addEventListener("click", manejarAccionDetalle);
+
+    /* ---------- Salón: plano de las cabañas por días ---------- */
+    const SALON_DIAS = 14;
+    const SALON_CABANAS = ["Cabaña Grande", "Cabina Pequeña"];
+    let salonInicio = new Date();
+    salonInicio.setHours(0, 0, 0, 0);
+    let salonDetalle = null;
+
+    function sumarDias(fecha, n) {
+      const r = new Date(fecha);
+      r.setDate(r.getDate() + n);
+      return r;
+    }
+
+    // Elige lo más importante del día para pintar el cuadro
+    function bloqueSalon(bloques) {
+      const orden = ["confirmada", "nueva", "airbnb", "otro", "completada"];
+      let mejor = null;
+      bloques.forEach(function (b) {
+        const clase = infoBloqueo(b).clase;
+        if (!mejor || orden.indexOf(clase) < orden.indexOf(mejor.clase)) {
+          mejor = { clase: clase, bloque: b };
+        }
+      });
+      return mejor;
+    }
+
+    function etiquetaSalon(b) {
+      if (infoBloqueo(b).clase === "airbnb") return "Airbnb";
+      const s = solicitudes.find(function (x) { return x.id === b.solicitudId; });
+      if (!s || !s.nombre) return "Bloqueo";
+      return s.nombre.split(" ")[0];
+    }
+
+    function renderSalon() {
+      const grid = document.getElementById("salon-grid");
+      if (!grid) return;
+
+      const fin = sumarDias(salonInicio, SALON_DIAS - 1);
+      document.getElementById("salon-titulo").textContent =
+        salonInicio.toLocaleDateString("es-CR", { day: "numeric", month: "short" }) + " – " +
+        fin.toLocaleDateString("es-CR", { day: "numeric", month: "short", year: "numeric" });
+
+      let html = "";
+      SALON_CABANAS.forEach(function (cabana) {
+        html += '<div class="salon-cabana"><h3>' + esc(cabana) + '</h3><div class="salon-fila">';
+        for (let i = 0; i < SALON_DIAS; i++) {
+          const d = sumarDias(salonInicio, i);
+          const fecha = fechaTextoCal(d);
+          const bloques = calBloqueos.filter(function (b) { return b.cabana === cabana && b.fecha === fecha; });
+          const mejor = bloqueSalon(bloques);
+          const clase = mejor ? mejor.clase : "libre";
+          const texto = mejor ? etiquetaSalon(mejor.bloque) : "";
+          html += '<button type="button" class="salon-dia salon-' + clase + '" data-cabana="' + esc(cabana) +
+            '" data-fecha="' + fecha + '">' +
+            '<span class="salon-num">' + d.getDate() + "</span>" +
+            '<span class="salon-sem">' + CAL_DIAS_CORTOS[(d.getDay() + 6) % 7] + "</span>" +
+            (texto ? "<small>" + esc(texto) + "</small>" : "") +
+            "</button>";
+        }
+        html += "</div></div>";
+      });
+      grid.innerHTML = html;
+
+      // Si el detalle está abierto, se actualiza con los datos nuevos
+      if (salonDetalle) {
+        calCabana = salonDetalle.cabana;
+        calDia = salonDetalle.fecha;
+        renderDetalleCal(document.getElementById("salon-detalle"));
+      }
+    }
+
+    function abrirSalonDetalle(cabana, fecha) {
+      calCabana = cabana;
+      calDia = fecha;
+      document.getElementById("cal-cabana").value = cabana;
+      salonDetalle = { cabana: cabana, fecha: fecha };
+      document.getElementById("salon-overlay").hidden = false;
+      renderDetalleCal(document.getElementById("salon-detalle"));
+    }
+
+    function cerrarSalonDetalle() {
+      salonDetalle = null;
+      document.getElementById("salon-overlay").hidden = true;
+    }
+
+    document.getElementById("salon-grid").addEventListener("click", function (e) {
+      const boton = e.target.closest("[data-fecha]");
+      if (!boton) return;
+      abrirSalonDetalle(boton.dataset.cabana, boton.dataset.fecha);
+    });
+
+    document.getElementById("salon-overlay").addEventListener("click", function (e) {
+      if (e.target.id === "salon-overlay" || e.target.closest("[data-cerrar]")) {
+        cerrarSalonDetalle();
+        return;
+      }
+      manejarAccionDetalle(e);
+    });
+
+    document.getElementById("salon-ant").addEventListener("click", function () {
+      salonInicio = sumarDias(salonInicio, -7);
+      renderSalon();
+    });
+
+    document.getElementById("salon-sig").addEventListener("click", function () {
+      salonInicio = sumarDias(salonInicio, 7);
+      renderSalon();
+    });
+
+    document.getElementById("salon-hoy").addEventListener("click", function () {
+      salonInicio = new Date();
+      salonInicio.setHours(0, 0, 0, 0);
+      renderSalon();
     });
 
     const REF_DATOS_PAGO = doc(db, "ajustes", "datosPago");
