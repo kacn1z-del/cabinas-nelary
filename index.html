@@ -869,6 +869,77 @@
       min-height: 1.6em;
     }
 
+    /* ---------- CALENDARIO ESTILO AIRBNB ---------- */
+    .cal-cabecera { display: none; }
+
+    #cal-grid {
+      max-height: 460px;
+      overflow-y: auto;
+      padding-right: 6px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .cal-mes-bloque { margin-bottom: 30px; }
+
+    .cal-mes-titulo {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--texto);
+      text-transform: capitalize;
+      margin-bottom: 12px;
+    }
+
+    .cal-mes-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      row-gap: 4px;
+    }
+
+    .cal-celda {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      font-size: 0.95rem;
+      border-radius: 50%;
+    }
+
+    .cal-celda.libre:hover:not(:disabled) { background: #F3EEE2; color: var(--texto); }
+
+    .cal-celda.hoy { text-decoration: underline; font-weight: 600; }
+
+    .cal-celda.ocupado,
+    .cal-celda.pasado {
+      background: transparent;
+      color: #B5ACA0;
+      text-decoration: line-through;
+    }
+
+    .cal-celda.pendiente {
+      background: transparent;
+      color: #B5ACA0;
+      text-decoration: line-through;
+    }
+
+    .cal-celda.en-rango {
+      background: #F3EEE2;
+      color: var(--texto);
+      border-radius: 0;
+    }
+
+    .cal-celda.seleccionado {
+      background: var(--texto);
+      color: var(--blanco);
+      border-radius: 50%;
+      font-weight: 600;
+    }
+
+    .cal-dia-nombre {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--gris);
+      padding: 4px 0 6px;
+      font-weight: 600;
+    }
+
     /* ---------- CONTACTO ---------- */
     .contacto-grid {
       display: grid;
@@ -1252,6 +1323,23 @@
           <div class="campo">
             <label for="notas" data-i18n="lblNotas">Comentarios (opcional)</label>
             <textarea id="notas" maxlength="1000"></textarea>
+          </div>
+
+          <div class="campo">
+            <label for="comprobante">Comprobante del pago por SINPE (obligatorio)</label>
+            <input type="file" id="comprobante" accept="image/*,application/pdf" required>
+          </div>
+
+          <div class="campo">
+            <label>Foto del frente de la cédula de cada persona</label>
+            <div id="cedulas"></div>
+          </div>
+
+          <div class="campo">
+            <label class="consentimiento-texto">
+              <input type="checkbox" id="consentimiento" required>
+              Autorizo el uso de estos documentos únicamente para confirmar mi reserva en Refugio NELARY. Se eliminarán 30 días después de mi salida.
+            </label>
           </div>
 
           <button type="submit" class="btn btn-enviar" id="boton-enviar" data-i18n="btnEnviar">Enviar solicitud</button>
@@ -1860,55 +1948,72 @@
       entradaInput.min = hoyTexto;
     }
 
+    // Muestra 12 meses seguidos, como en Airbnb. El usuario hace scroll.
     function renderCalendario() {
       const cabana = cabanaSelect.value;
-      const anio = mesVisible.getFullYear();
-      const mes = mesVisible.getMonth();
-
-      calMes.textContent = mesVisible.toLocaleDateString(localeActual(), { month: "long", year: "numeric" });
-      calAnterior.disabled = mesVisible <= new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      const nombres = t("diasCortos");
 
       calGrid.innerHTML = "";
 
-      t("diasCortos").forEach(function (nombre) {
-        const celda = document.createElement("div");
-        celda.className = "cal-dia-nombre";
-        celda.textContent = nombre;
-        calGrid.appendChild(celda);
-      });
+      for (let m = 0; m < 12; m++) {
+        const primero = new Date(hoy.getFullYear(), hoy.getMonth() + m, 1);
+        const anio = primero.getFullYear();
+        const mes = primero.getMonth();
 
-      // Lunes = primera columna
-      const primerDia = (new Date(anio, mes, 1).getDay() + 6) % 7;
-      for (let v = 0; v < primerDia; v++) {
-        const vacia = document.createElement("div");
-        vacia.className = "cal-celda vacia";
-        calGrid.appendChild(vacia);
-      }
+        const bloque = document.createElement("div");
+        bloque.className = "cal-mes-bloque";
 
-      const diasDelMes = new Date(anio, mes + 1, 0).getDate();
-      for (let dia = 1; dia <= diasDelMes; dia++) {
-        const texto = textoDesdeFecha(new Date(anio, mes, dia));
-        const estado = estadoDia(texto);
-        const boton = document.createElement("button");
-        boton.type = "button";
-        boton.textContent = dia;
-        boton.className = "cal-celda " + estado;
-        if (texto === hoyTexto) boton.classList.add("hoy");
+        const titulo = document.createElement("div");
+        titulo.className = "cal-mes-titulo";
+        titulo.textContent = primero.toLocaleDateString(localeActual(), { month: "long", year: "numeric" });
+        bloque.appendChild(titulo);
 
-        if (texto === entradaSel || texto === salidaSel) {
-          boton.classList.add("seleccionado");
-        } else if (entradaSel && salidaSel && texto > entradaSel && texto < salidaSel) {
-          boton.classList.add("en-rango");
+        const grilla = document.createElement("div");
+        grilla.className = "cal-mes-grid";
+
+        nombres.forEach(function (nombre) {
+          const celda = document.createElement("div");
+          celda.className = "cal-dia-nombre";
+          celda.textContent = nombre;
+          grilla.appendChild(celda);
+        });
+
+        // Lunes = primera columna
+        const primerDia = (primero.getDay() + 6) % 7;
+        for (let v = 0; v < primerDia; v++) {
+          const vacia = document.createElement("div");
+          vacia.className = "cal-celda vacia";
+          grilla.appendChild(vacia);
         }
 
-        // Solo se puede elegir si la disponibilidad ya cargó correctamente
-        const seleccionable = cabana && estadoDisponibilidad === "ok" && estado === "libre";
-        boton.disabled = !seleccionable;
-        if (seleccionable) {
-          boton.setAttribute("aria-label", texto);
-          boton.addEventListener("click", function () { seleccionarDia(texto); });
+        const diasDelMes = new Date(anio, mes + 1, 0).getDate();
+        for (let dia = 1; dia <= diasDelMes; dia++) {
+          const texto = textoDesdeFecha(new Date(anio, mes, dia));
+          const estado = estadoDia(texto);
+          const boton = document.createElement("button");
+          boton.type = "button";
+          boton.textContent = dia;
+          boton.className = "cal-celda " + estado;
+          if (texto === hoyTexto) boton.classList.add("hoy");
+
+          if (texto === entradaSel || texto === salidaSel) {
+            boton.classList.add("seleccionado");
+          } else if (entradaSel && salidaSel && texto > entradaSel && texto < salidaSel) {
+            boton.classList.add("en-rango");
+          }
+
+          // Solo se puede elegir si la disponibilidad ya cargó correctamente
+          const seleccionable = cabana && estadoDisponibilidad === "ok" && estado === "libre";
+          boton.disabled = !seleccionable;
+          if (seleccionable) {
+            boton.setAttribute("aria-label", texto);
+            boton.addEventListener("click", function () { seleccionarDia(texto); });
+          }
+          grilla.appendChild(boton);
         }
-        calGrid.appendChild(boton);
+
+        bloque.appendChild(grilla);
+        calGrid.appendChild(bloque);
       }
 
       // Resumen
@@ -1959,6 +2064,50 @@
       renderCalendario();
     });
 
+    /* =========================================================
+       DOCUMENTOS (Cloudinary privado)
+       Una foto de cédula por persona. Se pide la firma a /api/firma.
+       ========================================================= */
+    function renderCedulas() {
+      const contenedor = document.getElementById("cedulas");
+      const cantidad = Math.min(Math.max(Number(personasInput.value) || 1, 1), 8);
+      contenedor.innerHTML = "";
+      for (let i = 1; i <= cantidad; i++) {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.required = true;
+        input.setAttribute("aria-label", "Cédula persona " + i);
+        contenedor.appendChild(input);
+      }
+    }
+
+    async function subirArchivo(archivo) {
+      const firmaRespuesta = await fetch("/api/firma");
+      if (!firmaRespuesta.ok) throw new Error("No se pudo preparar la subida");
+      const firma = await firmaRespuesta.json();
+
+      const cuerpo = new FormData();
+      cuerpo.append("file", archivo);
+      cuerpo.append("api_key", firma.apiKey);
+      cuerpo.append("timestamp", firma.timestamp);
+      cuerpo.append("folder", firma.folder);
+      cuerpo.append("type", firma.type);
+      cuerpo.append("signature", firma.signature);
+
+      const subida = await fetch("https://api.cloudinary.com/v1_1/" + firma.cloudName + "/auto/upload", {
+        method: "POST",
+        body: cuerpo
+      });
+      if (!subida.ok) throw new Error("No se pudo subir el archivo");
+      const resultado = await subida.json();
+
+      return { publicId: resultado.public_id, formato: resultado.format || "", tipo: resultado.resource_type || "" };
+    }
+
+    personasInput.addEventListener("input", renderCedulas);
+    renderCedulas();
+
     cabanaSelect.addEventListener("change", function () {
       entradaSel = "";
       salidaSel = "";
@@ -1969,15 +2118,6 @@
       renderCalendario();
     });
 
-    calAnterior.addEventListener("click", function () {
-      mesVisible = new Date(mesVisible.getFullYear(), mesVisible.getMonth() - 1, 1);
-      renderCalendario();
-    });
-
-    calSiguiente.addEventListener("click", function () {
-      mesVisible = new Date(mesVisible.getFullYear(), mesVisible.getMonth() + 1, 1);
-      renderCalendario();
-    });
 
     // Los botones "Reservar" de cada cabaña preseleccionan la cabaña
     document.querySelectorAll("[data-cabana]").forEach(function (boton) {
@@ -2049,6 +2189,15 @@
       botonEnviar.textContent = t("enviando");
 
       try {
+        // Sube el comprobante y las cédulas a Cloudinary (privado)
+        datos.comprobante = await subirArchivo(document.getElementById("comprobante").files[0]);
+        datos.cedulas = [];
+        for (const input of document.querySelectorAll("#cedulas input[type=file]")) {
+          datos.cedulas.push(await subirArchivo(input.files[0]));
+        }
+        datos.consentimiento = true;
+        datos.consentimientoEn = serverTimestamp();
+
         await runTransaction(db, async function (tx) {
           const refs = noches.map(function (fecha) {
             return doc(db, "bloqueos", claveBloqueo(cabana, fecha));
