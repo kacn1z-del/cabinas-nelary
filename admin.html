@@ -856,8 +856,15 @@
     }
 
     function textoCambio(d) {
-      return "Hola " + d.nombre + ".\n\nSu reserva en Refugio NELARY fue modificada.\n\n" +
-        resumenEstadia(d) + "\nSi tiene alguna duda, responda a este correo.\n\nRefugio NELARY";
+      let texto = "Hola " + d.nombre + ".\n\nSu reserva en Refugio NELARY fue modificada.\n\n" +
+        resumenEstadia(d);
+      if (Number(d.precioTotal) > 0) {
+        const adelanto = Math.round(Number(d.precioTotal) * 0.5);
+        texto += "\nTotal: " + fmtColones(d.precioTotal) +
+          "\nAdelanto (50 %): " + fmtColones(adelanto) + "\n";
+      }
+      texto += "\nDatos para el pago:\n" + DATOS_PAGO + "\n";
+      return texto + "\nSi tiene alguna duda, responda a este correo.\n\nRefugio NELARY";
     }
 
     function textoCancelacion(s) {
