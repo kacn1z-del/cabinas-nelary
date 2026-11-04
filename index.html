@@ -1338,6 +1338,48 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    /* =========================================================
+       AVISO AL REFUGIO (EmailJS)
+       Solo avisa al correo del refugio que llegó una solicitud.
+       No envía datos de pago ni correos al huésped.
+       ========================================================= */
+    const EMAILJS_AVISO = {
+      servicio: "service_ikjtoog",
+      plantilla: "template_pjc60zr",
+      clave: "yWDBlaiUOEel13xwm"
+    };
+    const CORREO_AVISO = "refugionelary@gmail.com";
+
+    function avisarRefugio(d) {
+      const mensaje = "Nueva solicitud de reserva desde la página.\n\n" +
+        "Cabaña: " + d.cabana + "\n" +
+        "Entrada: " + d.entrada + "\n" +
+        "Salida: " + d.salida + "\n" +
+        "Personas: " + d.personas + "\n" +
+        "Nombre: " + d.nombre + "\n" +
+        "Teléfono: " + d.telefono + "\n" +
+        "Correo: " + d.correo + "\n" +
+        "Total estimado: ₡" + Number(d.precioTotal).toLocaleString("es-CR") + "\n\n" +
+        "Revísela en el panel de administración.";
+
+      return fetch("https://api.emailjs.com/api/v1.0/email/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          service_id: EMAILJS_AVISO.servicio,
+          template_id: EMAILJS_AVISO.plantilla,
+          user_id: EMAILJS_AVISO.clave,
+          template_params: {
+            to_email: CORREO_AVISO,
+            subject: "Nueva solicitud · Refugio NELARY",
+            message: mensaje
+          }
+        })
+      }).catch(function (error) {
+        console.warn("No se pudo enviar el aviso:", error);
+      });
+    }
+
     const CABANAS = ["Cabaña Grande", "Cabina Pequeña"];
     const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 4 };
 
@@ -2036,6 +2078,7 @@
           tx.set(ref, datos);
         });
 
+        avisarRefugio(datos);
         form.reset();
         entradaSel = "";
         salidaSel = "";
