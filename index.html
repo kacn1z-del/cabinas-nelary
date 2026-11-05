@@ -1378,19 +1378,19 @@
           </div>
 
           <div class="campo">
-            <label for="comprobante">Comprobante del pago por SINPE (obligatorio)</label>
+            <label for="comprobante" data-i18n="lblComprobante">Comprobante del pago por SINPE (obligatorio)</label>
             <input type="file" id="comprobante" accept="image/*,application/pdf" required>
           </div>
 
           <div class="campo">
-            <label>Foto del frente de la cédula de cada persona</label>
+            <label data-i18n="lblCedulas">Foto del frente de la cédula de cada persona</label>
             <div id="cedulas"></div>
           </div>
 
           <div class="campo">
             <label class="consentimiento-texto">
               <input type="checkbox" id="consentimiento" required>
-              Autorizo el uso de estos documentos únicamente para confirmar mi reserva en Refugio NELARY. Se eliminarán 30 días después de mi salida.
+              <span data-i18n="txtConsentimiento">Autorizo el uso de estos documentos únicamente para confirmar mi reserva en Refugio NELARY. Se eliminarán 30 días después de mi salida.</span>
             </label>
           </div>
 
@@ -1626,6 +1626,10 @@
         lblCorreo: "Correo electrónico",
         lblNotas: "Comentarios (opcional)",
         btnEnviar: "Enviar solicitud",
+        lblComprobante: "Comprobante del pago por SINPE (obligatorio)",
+        lblCedulas: "Foto del frente de la cédula de cada persona",
+        txtConsentimiento: "Autorizo el uso de estos documentos únicamente para confirmar mi reserva en Refugio NELARY. Se eliminarán 30 días después de mi salida.",
+        ariaCedula: (n) => "Cédula persona " + n,
         enviando: "Enviando…",
         msgGracias: "Gracias. Recibimos tu solicitud y te escribiremos pronto para confirmar tu estadía.",
         msgNoVerificar: "No pudimos verificar la disponibilidad. Recargue la página o escríbanos directamente.",
@@ -1738,6 +1742,10 @@
         lblCorreo: "Email",
         lblNotas: "Comments (optional)",
         btnEnviar: "Send request",
+        lblComprobante: "SINPE payment receipt (required)",
+        lblCedulas: "Photo of the front of each person's ID card",
+        txtConsentimiento: "I authorize the use of these documents only to confirm my booking at NELARY Refuge. They will be deleted 30 days after my check-out.",
+        ariaCedula: (n) => "ID card, person " + n,
         enviando: "Sending…",
         msgGracias: "Thank you. We received your request and will write to you soon to confirm your stay.",
         msgNoVerificar: "We could not verify availability. Reload the page or write to us directly.",
@@ -1818,6 +1826,9 @@
     function aplicarIdioma() {
       document.documentElement.lang = idioma;
       document.title = t("tituloPagina");
+      document.querySelectorAll("#cedulas input[type=file]").forEach(function (input, i) {
+        input.setAttribute("aria-label", t("ariaCedula")(i + 1));
+      });
 
       document.querySelectorAll("[data-i18n]").forEach(function (el) {
         el.textContent = t(el.dataset.i18n);
@@ -2134,7 +2145,7 @@
         input.type = "file";
         input.accept = "image/*";
         input.required = true;
-        input.setAttribute("aria-label", "Cédula persona " + i);
+        input.setAttribute("aria-label", t("ariaCedula")(i));
         contenedor.appendChild(input);
       }
     }
