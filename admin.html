@@ -234,6 +234,13 @@
     .inv-tabla th, .inv-tabla td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--crema-oscuro); }
     .inv-tabla th { font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--gris); }
     .inv-tabla tr.inv-bajo td { color: var(--rojo); font-weight: 600; }
+    .tabla-scroll { overflow-x: auto; margin-bottom: 18px; }
+    .tabla-scroll .inv-tabla { margin-bottom: 0; }
+    .inv-tabla tr.inv-ajuste td { font-style: italic; color: var(--gris); }
+    .btn.btn-mini { width: auto; padding: 5px 10px; font-size: 0.78rem; margin: 2px 4px 2px 0; }
+    .btn.btn-mini.peligro { background: var(--rojo); }
+    .inv-acciones { white-space: nowrap; }
+    #editar-producto-bloque { border-top: 2px solid var(--crema-oscuro); margin-top: 24px; padding-top: 6px; }
     .cal-color.completada { background: #E6E6E6; }
 
     /* ---------- SALÓN (plano de cabañas por días) ---------- */
@@ -725,7 +732,26 @@
       <div id="inv-lista"></div>
       <button type="button" class="btn" id="btn-inv-inicial" hidden>Cargar lista inicial</button>
 
+      <div id="editar-producto-bloque" hidden>
+        <h2>Editar producto</h2>
+        <form id="form-editar-producto" class="formulario">
+          <label for="edit-nombre">Nombre</label>
+          <input type="text" id="edit-nombre" required maxlength="120">
+          <label for="edit-categoria">Categoría</label>
+          <input type="text" id="edit-categoria" list="inv-categorias" required maxlength="80">
+          <label for="edit-unidad">Unidad (kg, litro, unidad, rollo…)</label>
+          <input type="text" id="edit-unidad" required maxlength="30">
+          <label for="edit-minimo">Cantidad mínima</label>
+          <input type="number" id="edit-minimo" min="0" step="any" required>
+          <p class="ayuda" id="edit-aviso"></p>
+          <p class="error-texto" id="edit-mensaje"></p>
+          <button type="submit" class="btn">Guardar cambios</button>
+          <button type="button" class="btn" id="edit-cancelar">Cancelar</button>
+        </form>
+      </div>
+
       <h2>Registrar compra</h2>
+      <p class="ayuda" id="compra-modo" hidden></p>
       <form id="form-compra" class="formulario">
         <label for="compra-producto">Producto</label>
         <select id="compra-producto" required></select>
@@ -740,11 +766,26 @@
         <label for="compra-fecha">Fecha</label>
         <input type="date" id="compra-fecha" required>
         <p class="error-texto" id="compra-mensaje"></p>
-        <button type="submit" class="btn">Guardar compra</button>
+        <button type="submit" class="btn" id="compra-guardar">Guardar compra</button>
+        <button type="button" class="btn" id="compra-cancelar" hidden>Cancelar edición</button>
       </form>
 
       <h2>Historial de compras</h2>
       <div id="inv-compras"></div>
+
+      <h2>Corregir existencia (conteo físico)</h2>
+      <p class="ayuda">Cuente lo que hay en la bodega y escriba la cantidad. El sistema guarda la diferencia como un ajuste, sin borrar el historial.</p>
+      <form id="form-ajuste" class="formulario">
+        <label for="ajuste-producto">Producto</label>
+        <select id="ajuste-producto" required></select>
+        <p class="ayuda" id="ajuste-actual"></p>
+        <label for="ajuste-contado">Cantidad contada (en la unidad del producto)</label>
+        <input type="number" id="ajuste-contado" min="0" step="any" required>
+        <label for="ajuste-nota">Motivo (opcional)</label>
+        <input type="text" id="ajuste-nota" maxlength="120">
+        <p class="error-texto" id="ajuste-mensaje"></p>
+        <button type="submit" class="btn">Guardar conteo</button>
+      </form>
 
       <h2>Agregar producto</h2>
       <form id="form-producto" class="formulario">
@@ -1628,6 +1669,9 @@
     let inventarioProductos = [];
     let inventarioCompras = [];
     let inventarioConsumos = {};
+    let inventarioBitacora = [];
+    let compraEditandoId = null;
+    let productoEditandoId = null;
 
     function claveProducto(nombre) {
       return String(nombre || "").trim().toLowerCase();
@@ -1657,9 +1701,9 @@
         ]);
         inventarioProductos = prodSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
         inventarioCompras = compSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        inventarioBitacora = bitSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
         inventarioConsumos = {};
-        bitSnap.docs.forEach(function (d) {
-          const b = d.data();
+        inventarioBitacora.forEach(function (b) {
           if (b.tipo !== "consumo") return;
           const clave = claveProducto(b.producto);
           inventarioConsumos[clave] = (inventarioConsumos[clave] || 0) + Number(b.cantidad || 0);
@@ -1689,21 +1733,27 @@
       categorias.forEach(function (cat) {
         const items = inventarioProductos.filter(function (p) { return p.categoria === cat; });
         if (!items.length) return;
-        html += "<h3>" + esc(cat) + '</h3><table class="inv-tabla"><tr><th>Producto</th><th>Existencia</th><th>Mínimo</th></tr>';
+        html += "<h3>" + esc(cat) + '</h3><div class="tabla-scroll"><table class="inv-tabla"><tr><th>Producto</th><th>Existencia</th><th>Mínimo</th><th></th></tr>';
         items.forEach(function (p) {
           const bajo = bajoMinimo(p);
           html += '<tr class="' + (bajo ? "inv-bajo" : "") + '"><td>' + esc(p.producto) + "</td><td>" +
             esc(String(existenciaDe(p))) + " " + esc(p.unidad || "") + "</td><td>" +
-            esc(String(p.minimo)) + " " + esc(p.unidad || "") + "</td></tr>";
+            esc(String(p.minimo)) + " " + esc(p.unidad || "") + '</td><td class="inv-acciones">' +
+            '<button type="button" class="btn btn-mini" data-accion="editar-producto" data-id="' + esc(p.id) + '">Editar</button>' +
+            '<button type="button" class="btn btn-mini peligro" data-accion="borrar-producto" data-id="' + esc(p.id) + '">Eliminar</button>' +
+            "</td></tr>";
         });
-        html += "</table>";
+        html += "</table></div>";
       });
       document.getElementById("inv-lista").innerHTML = html || '<p class="vacio">Todavía no hay productos.</p>';
       document.getElementById("btn-inv-inicial").hidden = inventarioProductos.length > 0;
 
       // Selector de compras y sugerencias de categoría
-      document.getElementById("compra-producto").innerHTML = inventarioProductos
+      const opcionesProducto = inventarioProductos
         .map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.producto) + "</option>"; }).join("");
+      document.getElementById("compra-producto").innerHTML = opcionesProducto;
+      document.getElementById("ajuste-producto").innerHTML = opcionesProducto;
+      mostrarExistenciaAjuste();
       document.getElementById("inv-categorias").innerHTML = categorias
         .map(function (c) { return '<option value="' + esc(c) + '">'; }).join("");
 
@@ -1712,15 +1762,20 @@
         return (b.fecha && b.fecha.toMillis ? b.fecha.toMillis() : 0) - (a.fecha && a.fecha.toMillis ? a.fecha.toMillis() : 0);
       });
       document.getElementById("inv-compras").innerHTML = compras.length
-        ? '<table class="inv-tabla"><tr><th>Fecha</th><th>Producto</th><th>Marca</th><th>Cantidad</th><th>Precio</th><th>Por unidad</th><th>Lugar</th></tr>' +
+        ? '<div class="tabla-scroll"><table class="inv-tabla"><tr><th>Fecha</th><th>Producto</th><th>Marca</th><th>Cantidad</th><th>Precio</th><th>Por unidad</th><th>Lugar</th><th></th></tr>' +
           compras.map(function (c) {
             const cantidad = Number(c.cantidad || 0);
             const precio = Number(c.precio || 0);
-            const porUnidad = cantidad > 0 ? fmtColones(Math.round(precio / cantidad)) : "";
-            return "<tr><td>" + esc(fechaCompra(c)) + "</td><td>" + esc(c.producto) + "</td><td>" + esc(c.marca || "") +
-              "</td><td>" + esc(String(cantidad)) + "</td><td>" + esc(fmtColones(precio)) + "</td><td>" + esc(porUnidad) +
-              "</td><td>" + esc(c.lugar || "") + "</td></tr>";
-          }).join("") + "</table>"
+            const esAjuste = c.tipo === "ajuste";
+            const porUnidad = !esAjuste && cantidad > 0 ? fmtColones(Math.round(precio / cantidad)) : "";
+            const nombre = esAjuste ? c.producto + " (ajuste)" : c.producto;
+            const acciones = (esAjuste ? "" : '<button type="button" class="btn btn-mini" data-accion="editar-compra" data-id="' + esc(c.id) + '">Editar</button>') +
+              '<button type="button" class="btn btn-mini peligro" data-accion="borrar-compra" data-id="' + esc(c.id) + '">Eliminar</button>';
+            return '<tr class="' + (esAjuste ? "inv-ajuste" : "") + '"><td>' + esc(fechaCompra(c)) + "</td><td>" + esc(nombre) +
+              "</td><td>" + esc(c.marca || "") + "</td><td>" + esc(String(cantidad)) + "</td><td>" +
+              esc(esAjuste ? "—" : fmtColones(precio)) + "</td><td>" + esc(porUnidad) + "</td><td>" + esc(c.lugar || "") +
+              '</td><td class="inv-acciones">' + acciones + "</td></tr>";
+          }).join("") + "</table></div>"
         : '<p class="vacio">Todavía no hay compras registradas.</p>';
 
       renderWhatsApp(bajos);
@@ -1745,6 +1800,247 @@
           '" target="_blank" rel="noopener">Enviar alerta a ' + esc(numero) + "</a></p>";
       }).join("");
     }
+
+    /* ---------- Corrección de productos, compras y existencias ---------- */
+    function fechaLocal(f) {
+      return f.getFullYear() + "-" + String(f.getMonth() + 1).padStart(2, "0") + "-" + String(f.getDate()).padStart(2, "0");
+    }
+
+    function fechaParaInput(c) {
+      if (c.fecha && typeof c.fecha.toDate === "function") return fechaLocal(c.fecha.toDate());
+      return c.fechaTexto || "";
+    }
+
+    function mostrarExistenciaAjuste() {
+      const id = document.getElementById("ajuste-producto").value;
+      const p = inventarioProductos.find(function (x) { return x.id === id; });
+      document.getElementById("ajuste-actual").textContent = p
+        ? "Existencia calculada ahora: " + existenciaDe(p) + " " + (p.unidad || "")
+        : "";
+    }
+
+    // Compras: editar carga los datos en el formulario; guardar actualiza el mismo registro
+    function empezarEditarCompra(id) {
+      const c = inventarioCompras.find(function (x) { return x.id === id; });
+      if (!c || c.tipo === "ajuste") return;
+      compraEditandoId = id;
+      document.getElementById("compra-producto").value = c.productoId || "";
+      document.getElementById("compra-marca").value = c.marca || "";
+      document.getElementById("compra-cantidad").value = c.cantidad || "";
+      document.getElementById("compra-precio").value = Number(c.precio || 0);
+      document.getElementById("compra-lugar").value = c.lugar || "";
+      document.getElementById("compra-fecha").value = fechaParaInput(c);
+      document.getElementById("compra-guardar").textContent = "Guardar cambios de la compra";
+      document.getElementById("compra-cancelar").hidden = false;
+      const modo = document.getElementById("compra-modo");
+      modo.textContent = "Editando una compra de " + (c.producto || "producto") + ". Cambie los datos y guarde, o cancele la edición.";
+      modo.hidden = false;
+      document.getElementById("compra-mensaje").textContent = "";
+      document.getElementById("compra-mensaje").classList.remove("error-texto");
+      document.getElementById("form-compra").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function cancelarEditarCompra() {
+      compraEditandoId = null;
+      document.getElementById("form-compra").reset();
+      document.getElementById("compra-guardar").textContent = "Guardar compra";
+      document.getElementById("compra-cancelar").hidden = true;
+      document.getElementById("compra-modo").hidden = true;
+    }
+
+    async function borrarCompra(id) {
+      const c = inventarioCompras.find(function (x) { return x.id === id; });
+      if (!c) return;
+      const pregunta = c.tipo === "ajuste"
+        ? "¿Borrar este ajuste? La existencia volverá a como estaba antes del ajuste."
+        : "¿Borrar esta compra? La existencia del producto bajará en esa cantidad.";
+      if (!confirm(pregunta)) return;
+      try {
+        await deleteDoc(doc(db, "compras", id));
+        if (compraEditandoId === id) cancelarEditarCompra();
+        await cargarInventario();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo borrar. Intente de nuevo.");
+      }
+    }
+
+    // Productos: editar nombre, categoría, unidad y mínimo
+    function empezarEditarProducto(id) {
+      const p = inventarioProductos.find(function (x) { return x.id === id; });
+      if (!p) return;
+      productoEditandoId = id;
+      document.getElementById("edit-nombre").value = p.producto || "";
+      document.getElementById("edit-categoria").value = p.categoria || "";
+      document.getElementById("edit-unidad").value = p.unidad || "";
+      document.getElementById("edit-minimo").value = Number(p.minimo || 0);
+      document.getElementById("edit-aviso").textContent = "";
+      document.getElementById("edit-mensaje").textContent = "";
+      document.getElementById("editar-producto-bloque").hidden = false;
+      document.getElementById("editar-producto-bloque").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function cerrarEditarProducto() {
+      productoEditandoId = null;
+      document.getElementById("editar-producto-bloque").hidden = true;
+    }
+
+    async function borrarProducto(id) {
+      const p = inventarioProductos.find(function (x) { return x.id === id; });
+      if (!p) return;
+      if (inventarioCompras.some(function (c) { return c.productoId === id; })) {
+        alert("Este producto tiene compras o ajustes registrados, por eso no se puede borrar. Si ya no se usa, puede poner su mínimo en 0.");
+        return;
+      }
+      if (!confirm("¿Borrar el producto \"" + p.producto + "\"?")) return;
+      try {
+        await deleteDoc(doc(db, "inventario", id));
+        if (productoEditandoId === id) cerrarEditarProducto();
+        await cargarInventario();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo borrar el producto. Intente de nuevo.");
+      }
+    }
+
+    document.getElementById("form-editar-producto").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const mensaje = document.getElementById("edit-mensaje");
+      const boton = e.target.querySelector("button[type=submit]");
+      const actual = inventarioProductos.find(function (x) { return x.id === productoEditandoId; });
+      if (!actual) {
+        mensaje.textContent = "Seleccione un producto para editar.";
+        mensaje.classList.add("error-texto");
+        return;
+      }
+      const nombre = document.getElementById("edit-nombre").value.trim();
+      const datos = {
+        producto: nombre,
+        categoria: document.getElementById("edit-categoria").value.trim(),
+        unidad: document.getElementById("edit-unidad").value.trim(),
+        minimo: Number(document.getElementById("edit-minimo").value)
+      };
+      if (!nombre || !(datos.minimo >= 0)) {
+        mensaje.textContent = "Revise el nombre y la cantidad mínima.";
+        mensaje.classList.add("error-texto");
+        return;
+      }
+      if (inventarioProductos.some(function (x) { return x.id !== actual.id && claveProducto(x.producto) === claveProducto(nombre); })) {
+        mensaje.textContent = "Ya existe otro producto con ese nombre.";
+        mensaje.classList.add("error-texto");
+        return;
+      }
+
+      const cambiaClave = claveProducto(nombre) !== claveProducto(actual.producto);
+      const consumosAfectados = cambiaClave
+        ? inventarioBitacora.filter(function (b) { return b.tipo === "consumo" && claveProducto(b.producto) === claveProducto(actual.producto); })
+        : [];
+      const comprasAfectadas = inventarioCompras.filter(function (c) { return c.productoId === actual.id; });
+      const operaciones = 1 + (nombre !== actual.producto ? comprasAfectadas.length : 0) + (cambiaClave ? consumosAfectados.length : 0);
+      if (operaciones > 450) {
+        mensaje.textContent = "Este producto tiene demasiados registros para cambiarlo de una vez. Avise al desarrollador.";
+        mensaje.classList.add("error-texto");
+        return;
+      }
+      if (cambiaClave && !confirm("Al cambiar el nombre también se cambia en los " + consumosAfectados.length +
+          " consumos de la bitácora de este producto, para que sigan descontando de la existencia. ¿Continuar?")) {
+        return;
+      }
+
+      boton.disabled = true;
+      try {
+        const lote = writeBatch(db);
+        lote.update(doc(db, "inventario", actual.id), datos);
+        if (nombre !== actual.producto) {
+          comprasAfectadas.forEach(function (c) { lote.update(doc(db, "compras", c.id), { producto: nombre }); });
+        }
+        if (cambiaClave) {
+          consumosAfectados.forEach(function (b) { lote.update(doc(db, "bitacora", b.id), { producto: nombre }); });
+        }
+        await lote.commit();
+        cerrarEditarProducto();
+        await cargarInventario();
+      } catch (error) {
+        console.error(error);
+        mensaje.textContent = "No se pudieron guardar los cambios.";
+        mensaje.classList.add("error-texto");
+      } finally {
+        boton.disabled = false;
+      }
+    });
+
+    document.getElementById("edit-cancelar").addEventListener("click", cerrarEditarProducto);
+    document.getElementById("compra-cancelar").addEventListener("click", cancelarEditarCompra);
+    document.getElementById("ajuste-producto").addEventListener("change", mostrarExistenciaAjuste);
+
+    document.getElementById("inv-lista").addEventListener("click", function (e) {
+      const boton = e.target.closest("button[data-accion]");
+      if (!boton) return;
+      if (boton.dataset.accion === "editar-producto") empezarEditarProducto(boton.dataset.id);
+      if (boton.dataset.accion === "borrar-producto") borrarProducto(boton.dataset.id);
+    });
+
+    document.getElementById("inv-compras").addEventListener("click", function (e) {
+      const boton = e.target.closest("button[data-accion]");
+      if (!boton) return;
+      if (boton.dataset.accion === "editar-compra") empezarEditarCompra(boton.dataset.id);
+      if (boton.dataset.accion === "borrar-compra") borrarCompra(boton.dataset.id);
+    });
+
+    document.getElementById("form-ajuste").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const formulario = e.target;
+      const mensaje = document.getElementById("ajuste-mensaje");
+      const boton = formulario.querySelector("button[type=submit]");
+      const campoContado = document.getElementById("ajuste-contado");
+      const producto = inventarioProductos.find(function (x) { return x.id === document.getElementById("ajuste-producto").value; });
+      if (!producto || campoContado.value === "" || !(Number(campoContado.value) >= 0)) {
+        mensaje.textContent = "Elija el producto y escriba la cantidad contada.";
+        mensaje.classList.add("error-texto");
+        return;
+      }
+      const contado = Number(campoContado.value);
+      const actualExistencia = existenciaDe(producto);
+      const diferencia = contado - actualExistencia;
+      if (diferencia === 0) {
+        mensaje.textContent = "El conteo ya coincide con la existencia calculada. No hay nada que corregir.";
+        mensaje.classList.add("error-texto");
+        return;
+      }
+      const unidad = producto.unidad || "";
+      if (!confirm("Existencia calculada: " + actualExistencia + " " + unidad + ". Contado: " + contado + " " + unidad +
+          ". Se registrará un ajuste de " + (diferencia > 0 ? "+" : "") + diferencia + " " + unidad + ". ¿Guardar?")) {
+        return;
+      }
+
+      const hoy = fechaLocal(new Date());
+      boton.disabled = true;
+      try {
+        await addDoc(collection(db, "compras"), {
+          productoId: producto.id,
+          producto: producto.producto,
+          tipo: "ajuste",
+          marca: "",
+          cantidad: diferencia,
+          precio: 0,
+          lugar: "",
+          nota: document.getElementById("ajuste-nota").value.trim(),
+          fecha: Timestamp.fromDate(new Date(hoy + "T12:00:00")),
+          fechaTexto: hoy,
+          creadoEn: serverTimestamp()
+        });
+        formulario.reset();
+        mensaje.textContent = "Conteo guardado.";
+        mensaje.classList.remove("error-texto");
+        await cargarInventario();
+      } catch (error) {
+        console.error(error);
+        mensaje.textContent = "No se pudo guardar el conteo.";
+        mensaje.classList.add("error-texto");
+      } finally {
+        boton.disabled = false;
+      }
+    });
 
     const REF_ALERTAS = doc(db, "ajustes", "alertas");
 
@@ -1811,20 +2107,25 @@
         return;
       }
       boton.disabled = true;
+      const datos = {
+        productoId: producto.id,
+        producto: producto.producto,
+        marca: document.getElementById("compra-marca").value.trim(),
+        cantidad: cantidad,
+        precio: precio,
+        lugar: document.getElementById("compra-lugar").value.trim(),
+        fecha: Timestamp.fromDate(new Date(fechaTexto + "T12:00:00")),
+        fechaTexto: fechaTexto
+      };
       try {
-        await addDoc(collection(db, "compras"), {
-          productoId: producto.id,
-          producto: producto.producto,
-          marca: document.getElementById("compra-marca").value.trim(),
-          cantidad: cantidad,
-          precio: precio,
-          lugar: document.getElementById("compra-lugar").value.trim(),
-          fecha: Timestamp.fromDate(new Date(fechaTexto + "T12:00:00")),
-          fechaTexto: fechaTexto,
-          creadoEn: serverTimestamp()
-        });
-        formulario.reset();
-        mensaje.textContent = "Compra guardada.";
+        const eraEdicion = !!compraEditandoId;
+        if (eraEdicion) {
+          await updateDoc(doc(db, "compras", compraEditandoId), Object.assign(datos, { editadoEn: serverTimestamp() }));
+        } else {
+          await addDoc(collection(db, "compras"), Object.assign(datos, { creadoEn: serverTimestamp() }));
+        }
+        cancelarEditarCompra();
+        mensaje.textContent = eraEdicion ? "Compra corregida." : "Compra guardada.";
         mensaje.classList.remove("error-texto");
         await cargarInventario();
       } catch (error) {
