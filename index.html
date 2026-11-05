@@ -672,6 +672,11 @@
       font-weight: 500;
     }
 
+    .btn-enviar:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
     /* Texto de autorización: se lee como texto normal, no como etiqueta */
     .consentimiento-texto {
       display: flex;
@@ -2222,6 +2227,17 @@
     personasInput.addEventListener("input", renderCedulas);
     renderCedulas();
 
+    // El botón Enviar solo se activa cuando la solicitud está completa
+    function actualizarBotonEnviar() {
+      const completo = !!cabanaSelect.value && !!entradaSel && !!salidaSel && form.checkValidity();
+      botonEnviar.disabled = !completo;
+    }
+    form.addEventListener("input", actualizarBotonEnviar);
+    form.addEventListener("change", actualizarBotonEnviar);
+    cabanaSelect.addEventListener("change", actualizarBotonEnviar);
+    window.formularioListo = true;
+    actualizarBotonEnviar();
+
     cabanaSelect.addEventListener("change", function () {
       entradaSel = "";
       salidaSel = "";
@@ -2240,6 +2256,7 @@
     function actualizarPieCalendario() {
       btnSiguientePaso.disabled = !(entradaSel && salidaSel);
       btnRestablecer.disabled = !(entradaSel || salidaSel);
+      if (window.formularioListo) actualizarBotonEnviar();
     }
 
     btnRestablecer.addEventListener("click", function () {
@@ -2380,8 +2397,8 @@
           mostrarMensaje(t("msgErrorEnvio"), true);
         }
       } finally {
-        botonEnviar.disabled = false;
         botonEnviar.textContent = textoOriginal;
+        actualizarBotonEnviar();
       }
     });
 
