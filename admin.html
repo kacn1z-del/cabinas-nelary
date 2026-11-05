@@ -227,6 +227,8 @@
       margin: 10px 0;
     }
     .documentos button { font-size: 0.85rem; padding: 6px 12px; }
+    .documentos .peligro { color: var(--rojo); border-color: var(--rojo); }
+    .documentos .nota-doc { width: 100%; font-size: 0.85rem; color: var(--gris); }
     .cal-color.completada { background: #E6E6E6; }
 
     /* ---------- SALÓN (plano de cabañas por días) ---------- */
@@ -1608,7 +1610,8 @@
     }
 
     /* ---------- Documentos privados (comprobante y cédulas) ---------- */
-    function documentosDe(s) {
+    // Lista de documentos guardados en una reserva (comprobante y cédulas)
+    function listaDocumentos(s) {
       const docs = [];
       if (s.comprobante && s.comprobante.publicId) {
         docs.push({ etiqueta: "Comprobante SINPE", doc: s.comprobante });
@@ -1616,6 +1619,18 @@
       (s.cedulas || []).forEach(function (c, i) {
         if (c && c.publicId) docs.push({ etiqueta: "Cédula " + (i + 1), doc: c });
       });
+      return docs;
+    }
+
+    // Los documentos se pueden borrar 30 días después del checkout
+    function fechaBorradoDocs(s) {
+      const fecha = new Date(s.salida + "T00:00:00");
+      fecha.setDate(fecha.getDate() + 30);
+      return fecha;
+    }
+
+    function documentosDe(s) {
+      const docs = listaDocumentos(s);
       if (!docs.length) return "";
 
       const botones = docs.map(function (d) {
@@ -1623,8 +1638,47 @@
           '" data-tipo="' + esc(d.doc.tipo || "image") +
           '" data-formato="' + esc(d.doc.formato || "") + '">' + esc(d.etiqueta) + "</button>";
       }).join("");
-      return '<div class="documentos">' + botones + "</div>";
+
+      const limite = fechaBorradoDocs(s);
+      const accion = new Date() >= limite
+        ? '<button type="button" class="sec peligro" data-borrar="' + esc(s.id) + '">Borrar documentos</button>'
+        : '<p class="nota-doc">Se podrán borrar a partir del ' + esc(limite.toLocaleDateString("es-CR")) + ".</p>";
+      return '<div class="documentos">' + botones + accion + "</div>";
     }
+
+    lista.addEventListener("click", async function (e) {
+      const boton = e.target.closest("button[data-borrar]");
+      if (!boton) return;
+
+      const s = solicitudes.find(function (x) { return x.id === boton.dataset.borrar; });
+      if (!s) return;
+      const docs = listaDocumentos(s);
+      if (!docs.length) return;
+      if (!confirm("¿Borrar los documentos de " + s.nombre + "? Esta acción no se puede deshacer.")) return;
+
+      boton.disabled = true;
+      try {
+        const token = await auth.currentUser.getIdToken();
+        const respuesta = await fetch("/api/documento", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ documentos: docs.map(function (d) { return { publicId: d.doc.publicId, tipo: d.doc.tipo || "image" }; }) })
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) throw new Error(datos.error || "No se pudieron borrar los documentos.");
+
+        await updateDoc(doc(db, "solicitudes", s.id), {
+          comprobante: null,
+          cedulas: [],
+          documentosBorradosEn: serverTimestamp()
+        });
+        await cargarSolicitudes();
+      } catch (error) {
+        console.error(error);
+        alert(error.message || "No se pudieron borrar los documentos.");
+        boton.disabled = false;
+      }
+    });
 
     lista.addEventListener("click", async function (e) {
       const boton = e.target.closest("button[data-doc]");
