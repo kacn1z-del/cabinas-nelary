@@ -229,6 +229,11 @@
     .documentos button { font-size: 0.85rem; padding: 6px 12px; }
     .documentos .peligro { color: var(--rojo); border-color: var(--rojo); }
     .documentos .nota-doc { width: 100%; font-size: 0.85rem; color: var(--gris); }
+
+    .inv-tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-bottom: 18px; background: #fff; }
+    .inv-tabla th, .inv-tabla td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--crema-oscuro); }
+    .inv-tabla th { font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--gris); }
+    .inv-tabla tr.inv-bajo td { color: var(--rojo); font-weight: 600; }
     .cal-color.completada { background: #E6E6E6; }
 
     /* ---------- SALÓN (plano de cabañas por días) ---------- */
@@ -540,6 +545,7 @@
       <button type="button" class="tab" data-tab="sincronizacion">Sincronización</button>
       <button type="button" class="tab" data-tab="calendario">Calendario</button>
       <button type="button" class="tab" data-tab="configuracion">Configuración</button>
+      <button type="button" class="tab" data-tab="inventario">Inventario</button>
     </nav>
 
     <!-- VISTA RESERVAS -->
@@ -694,6 +700,65 @@
         <p class="error-texto" id="sync-mensaje"></p>
         <button type="button" class="btn" id="btn-guardar-sync">Guardar enlaces</button>
         <button type="button" class="btn" id="btn-sincronizar">Sincronizar ahora</button>
+      </form>
+    </section>
+
+    <!-- VISTA INVENTARIO -->
+    <section id="vista-inventario" hidden>
+      <div class="barra">
+        <h1>Inventario</h1>
+      </div>
+      <p class="ayuda">La existencia se calcula sola: compras menos consumos registrados en la bitácora de limpieza. Las unidades de la bitácora deben ser las mismas del producto.</p>
+
+      <div id="inv-alerta"></div>
+
+      <h2>Alertas por WhatsApp</h2>
+      <form id="form-alertas" class="formulario">
+        <label for="alertas-telefonos">Números de administradores (con código de país, separados por coma)</label>
+        <input type="text" id="alertas-telefonos" placeholder="506XXXXXXXX, 506XXXXXXXX">
+        <p class="error-texto" id="alertas-mensaje"></p>
+        <button type="submit" class="btn">Guardar números</button>
+      </form>
+      <div id="inv-whatsapp"></div>
+
+      <h2>Productos</h2>
+      <div id="inv-lista"></div>
+      <button type="button" class="btn" id="btn-inv-inicial" hidden>Cargar lista inicial</button>
+
+      <h2>Registrar compra</h2>
+      <form id="form-compra" class="formulario">
+        <label for="compra-producto">Producto</label>
+        <select id="compra-producto" required></select>
+        <label for="compra-marca">Marca</label>
+        <input type="text" id="compra-marca" maxlength="80">
+        <label for="compra-cantidad">Cantidad comprada (en la unidad del producto)</label>
+        <input type="number" id="compra-cantidad" min="0.01" step="any" required>
+        <label for="compra-precio">Precio pagado (₡)</label>
+        <input type="number" id="compra-precio" min="0" step="1" required>
+        <label for="compra-lugar">Lugar de compra</label>
+        <input type="text" id="compra-lugar" maxlength="120">
+        <label for="compra-fecha">Fecha</label>
+        <input type="date" id="compra-fecha" required>
+        <p class="error-texto" id="compra-mensaje"></p>
+        <button type="submit" class="btn">Guardar compra</button>
+      </form>
+
+      <h2>Historial de compras</h2>
+      <div id="inv-compras"></div>
+
+      <h2>Agregar producto</h2>
+      <form id="form-producto" class="formulario">
+        <label for="prod-nombre">Nombre</label>
+        <input type="text" id="prod-nombre" required maxlength="120">
+        <label for="prod-categoria">Categoría</label>
+        <input type="text" id="prod-categoria" list="inv-categorias" required maxlength="80">
+        <datalist id="inv-categorias"></datalist>
+        <label for="prod-unidad">Unidad (kg, litro, unidad, rollo…)</label>
+        <input type="text" id="prod-unidad" required maxlength="30">
+        <label for="prod-minimo">Cantidad mínima</label>
+        <input type="number" id="prod-minimo" min="0" step="any" required>
+        <p class="error-texto" id="prod-mensaje"></p>
+        <button type="submit" class="btn">Agregar producto</button>
       </form>
     </section>
 
@@ -1185,6 +1250,8 @@
         if (destino === "calendario") cargarCalendario();
         document.getElementById("vista-configuracion").hidden = destino !== "configuracion";
         if (destino === "configuracion") cargarConfiguracion();
+        document.getElementById("vista-inventario").hidden = destino !== "inventario";
+        if (destino === "inventario") cargarInventario();
       });
     });
 
@@ -1522,7 +1589,284 @@
       }
     });
 
-    const COLECCIONES_RESPALDO = ["solicitudes", "bloqueos", "bitacora", "staff", "historial", "config", "ajustes", "inventario"];
+    /* =========================================================
+       INVENTARIO
+       Existencia = compras (entradas) − consumos de la bitácora (tipo "consumo").
+       Los productos viven en la colección inventario; las compras en compras.
+       ========================================================= */
+    const CATEGORIAS_INVENTARIO = ["Productos de limpieza", "Amenidades y artículos para huéspedes", "Alimentos y productos de cocina"];
+
+    const INVENTARIO_INICIAL = [
+      { categoria: "Productos de limpieza", producto: "Detergente para ropa", unidad: "kg", minimo: 1 },
+      { categoria: "Productos de limpieza", producto: "Cloro", unidad: "litro", minimo: 1 },
+      { categoria: "Productos de limpieza", producto: "Limpiavidrios", unidad: "litro", minimo: 1 },
+      { categoria: "Productos de limpieza", producto: "Desinfectante", unidad: "litro", minimo: 1 },
+      { categoria: "Productos de limpieza", producto: "Bolsas para basurero de cocina", unidad: "unidad", minimo: 10 },
+      { categoria: "Productos de limpieza", producto: "Bolsas para basurero de baño", unidad: "unidad", minimo: 10 },
+      { categoria: "Productos de limpieza", producto: "Esponjas para cocina", unidad: "unidad", minimo: 5 },
+      { categoria: "Productos de limpieza", producto: "Jabón líquido para lavar platos", unidad: "litro", minimo: 1 },
+      { categoria: "Productos de limpieza", producto: "Jabón líquido para manos", unidad: "ml", minimo: 500 },
+      { categoria: "Productos de limpieza", producto: "Aromatizante ambiental", unidad: "botella", minimo: 1 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Jabones pequeños individuales", unidad: "unidad", minimo: 10 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Papel higiénico", unidad: "rollo", minimo: 10 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Servilletas", unidad: "unidad", minimo: 10 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Toallas de cocina", unidad: "unidad", minimo: 3 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Encendedores", unidad: "unidad", minimo: 1 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Caja de fósforos", unidad: "caja", minimo: 1 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Plaquitas para mosquitos", unidad: "paquete", minimo: 1 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Cajita para sales", unidad: "paquete", minimo: 3 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Frascos para gel de baño", unidad: "unidad", minimo: 3 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Frascos para sales relajantes", unidad: "unidad", minimo: 3 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Frascos para otro tipo de sales", unidad: "unidad", minimo: 3 },
+      { categoria: "Amenidades y artículos para huéspedes", producto: "Botellas de vino", unidad: "unidad", minimo: 5 },
+      { categoria: "Alimentos y productos de cocina", producto: "Aceite", unidad: "litro", minimo: 1 },
+      { categoria: "Alimentos y productos de cocina", producto: "Café", unidad: "kg", minimo: 1 },
+      { categoria: "Alimentos y productos de cocina", producto: "Sal", unidad: "bolsa", minimo: 1 },
+      { categoria: "Alimentos y productos de cocina", producto: "Azúcar", unidad: "kg", minimo: 1 }
+    ];
+
+    let inventarioProductos = [];
+    let inventarioCompras = [];
+    let inventarioConsumos = {};
+
+    function claveProducto(nombre) {
+      return String(nombre || "").trim().toLowerCase();
+    }
+
+    function existenciaDe(p) {
+      const entradas = inventarioCompras
+        .filter(function (c) { return c.productoId === p.id; })
+        .reduce(function (suma, c) { return suma + Number(c.cantidad || 0); }, 0);
+      const consumos = inventarioConsumos[claveProducto(p.producto)] || 0;
+      return entradas - consumos;
+    }
+
+    function bajoMinimo(p) {
+      return existenciaDe(p) <= Number(p.minimo || 0);
+    }
+
+    async function cargarInventario() {
+      const lista = document.getElementById("inv-lista");
+      lista.innerHTML = '<p class="vacio">Cargando…</p>';
+      cargarAlertas();
+      try {
+        const [prodSnap, compSnap, bitSnap] = await Promise.all([
+          getDocs(collection(db, "inventario")),
+          getDocs(collection(db, "compras")),
+          getDocs(collection(db, "bitacora"))
+        ]);
+        inventarioProductos = prodSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        inventarioCompras = compSnap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        inventarioConsumos = {};
+        bitSnap.docs.forEach(function (d) {
+          const b = d.data();
+          if (b.tipo !== "consumo") return;
+          const clave = claveProducto(b.producto);
+          inventarioConsumos[clave] = (inventarioConsumos[clave] || 0) + Number(b.cantidad || 0);
+        });
+        renderInventario();
+      } catch (error) {
+        console.error(error);
+        lista.innerHTML = '<p class="vacio error">No se pudo leer el inventario.</p>';
+      }
+    }
+
+    function fechaCompra(c) {
+      if (c.fecha && typeof c.fecha.toDate === "function") return c.fecha.toDate().toLocaleDateString("es-CR");
+      return c.fechaTexto || "";
+    }
+
+    function renderInventario() {
+      // Alertas
+      const bajos = inventarioProductos.filter(bajoMinimo);
+      document.getElementById("inv-alerta").innerHTML = bajos.length
+        ? '<p class="error-texto">Bajo mínimo (' + bajos.length + "): " + bajos.map(function (p) { return esc(p.producto); }).join(", ") + ".</p>"
+        : '<p class="ayuda">Todo está sobre la cantidad mínima.</p>';
+
+      // Productos por categoría
+      const categorias = Array.from(new Set(CATEGORIAS_INVENTARIO.concat(inventarioProductos.map(function (p) { return p.categoria; }).filter(Boolean))));
+      let html = "";
+      categorias.forEach(function (cat) {
+        const items = inventarioProductos.filter(function (p) { return p.categoria === cat; });
+        if (!items.length) return;
+        html += "<h3>" + esc(cat) + '</h3><table class="inv-tabla"><tr><th>Producto</th><th>Existencia</th><th>Mínimo</th></tr>';
+        items.forEach(function (p) {
+          const bajo = bajoMinimo(p);
+          html += '<tr class="' + (bajo ? "inv-bajo" : "") + '"><td>' + esc(p.producto) + "</td><td>" +
+            esc(String(existenciaDe(p))) + " " + esc(p.unidad || "") + "</td><td>" +
+            esc(String(p.minimo)) + " " + esc(p.unidad || "") + "</td></tr>";
+        });
+        html += "</table>";
+      });
+      document.getElementById("inv-lista").innerHTML = html || '<p class="vacio">Todavía no hay productos.</p>';
+      document.getElementById("btn-inv-inicial").hidden = inventarioProductos.length > 0;
+
+      // Selector de compras y sugerencias de categoría
+      document.getElementById("compra-producto").innerHTML = inventarioProductos
+        .map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.producto) + "</option>"; }).join("");
+      document.getElementById("inv-categorias").innerHTML = categorias
+        .map(function (c) { return '<option value="' + esc(c) + '">'; }).join("");
+
+      // Historial de compras (para comparar precios)
+      const compras = inventarioCompras.slice().sort(function (a, b) {
+        return (b.fecha && b.fecha.toMillis ? b.fecha.toMillis() : 0) - (a.fecha && a.fecha.toMillis ? a.fecha.toMillis() : 0);
+      });
+      document.getElementById("inv-compras").innerHTML = compras.length
+        ? '<table class="inv-tabla"><tr><th>Fecha</th><th>Producto</th><th>Marca</th><th>Cantidad</th><th>Precio</th><th>Por unidad</th><th>Lugar</th></tr>' +
+          compras.map(function (c) {
+            const cantidad = Number(c.cantidad || 0);
+            const precio = Number(c.precio || 0);
+            const porUnidad = cantidad > 0 ? fmtColones(Math.round(precio / cantidad)) : "";
+            return "<tr><td>" + esc(fechaCompra(c)) + "</td><td>" + esc(c.producto) + "</td><td>" + esc(c.marca || "") +
+              "</td><td>" + esc(String(cantidad)) + "</td><td>" + esc(fmtColones(precio)) + "</td><td>" + esc(porUnidad) +
+              "</td><td>" + esc(c.lugar || "") + "</td></tr>";
+          }).join("") + "</table>"
+        : '<p class="vacio">Todavía no hay compras registradas.</p>';
+
+      renderWhatsApp(bajos);
+    }
+
+    // Alertas por WhatsApp: enlaces wa.me que abren el chat con el mensaje listo
+    let alertasTelefonos = [];
+
+    function renderWhatsApp(bajos) {
+      const contenedor = document.getElementById("inv-whatsapp");
+      if (!alertasTelefonos.length || !bajos.length) {
+        contenedor.innerHTML = alertasTelefonos.length
+          ? '<p class="ayuda">No hay productos bajo mínimo para avisar.</p>'
+          : '<p class="ayuda">Guarde al menos un número para poder enviar alertas.</p>';
+        return;
+      }
+      const texto = "Inventario bajo mínimo en Refugio NELARY:\n" + bajos.map(function (p) {
+        return "- " + p.producto + ": quedan " + existenciaDe(p) + " " + (p.unidad || "") + " (mínimo " + p.minimo + ")";
+      }).join("\n");
+      contenedor.innerHTML = alertasTelefonos.map(function (numero) {
+        return '<p><a class="btn" href="https://wa.me/' + esc(numero) + "?text=" + encodeURIComponent(texto) +
+          '" target="_blank" rel="noopener">Enviar alerta a ' + esc(numero) + "</a></p>";
+      }).join("");
+    }
+
+    const REF_ALERTAS = doc(db, "ajustes", "alertas");
+
+    async function cargarAlertas() {
+      try {
+        const snap = await getDoc(REF_ALERTAS);
+        alertasTelefonos = snap.exists() && Array.isArray(snap.data().telefonos) ? snap.data().telefonos : [];
+        document.getElementById("alertas-telefonos").value = alertasTelefonos.join(", ");
+      } catch (error) {
+        console.warn("No se pudieron cargar los números:", error);
+      }
+    }
+
+    document.getElementById("form-alertas").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const mensaje = document.getElementById("alertas-mensaje");
+      const telefonos = document.getElementById("alertas-telefonos").value
+        .split(",").map(function (n) { return n.replace(/\D/g, ""); }).filter(function (n) { return n.length >= 8; });
+      try {
+        await setDoc(REF_ALERTAS, { telefonos: telefonos, actualizadoEn: serverTimestamp() });
+        alertasTelefonos = telefonos;
+        mensaje.textContent = "Números guardados.";
+        mensaje.classList.remove("error-texto");
+        renderWhatsApp(inventarioProductos.filter(bajoMinimo));
+      } catch (error) {
+        console.error(error);
+        mensaje.textContent = "No se pudieron guardar los números.";
+        mensaje.classList.add("error-texto");
+      }
+    });
+
+    document.getElementById("btn-inv-inicial").addEventListener("click", async function () {
+      if (!confirm("¿Cargar la lista inicial de productos con sus cantidades mínimas?")) return;
+      const boton = this;
+      boton.disabled = true;
+      try {
+        const lote = writeBatch(db);
+        INVENTARIO_INICIAL.forEach(function (p) {
+          lote.set(doc(collection(db, "inventario")), Object.assign({ cabana: "" }, p));
+        });
+        await lote.commit();
+        await cargarInventario();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo cargar la lista. Intente de nuevo.");
+      } finally {
+        boton.disabled = false;
+      }
+    });
+
+    document.getElementById("form-compra").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const formulario = e.target;
+      const mensaje = document.getElementById("compra-mensaje");
+      const boton = formulario.querySelector("button[type=submit]");
+      const productoId = document.getElementById("compra-producto").value;
+      const producto = inventarioProductos.find(function (p) { return p.id === productoId; });
+      const fechaTexto = document.getElementById("compra-fecha").value;
+      const cantidad = Number(document.getElementById("compra-cantidad").value);
+      const precio = Number(document.getElementById("compra-precio").value);
+      if (!producto || !(cantidad > 0) || !(precio >= 0) || !fechaTexto) {
+        mensaje.textContent = "Revise producto, cantidad, precio y fecha.";
+        mensaje.classList.add("error-texto");
+        return;
+      }
+      boton.disabled = true;
+      try {
+        await addDoc(collection(db, "compras"), {
+          productoId: producto.id,
+          producto: producto.producto,
+          marca: document.getElementById("compra-marca").value.trim(),
+          cantidad: cantidad,
+          precio: precio,
+          lugar: document.getElementById("compra-lugar").value.trim(),
+          fecha: Timestamp.fromDate(new Date(fechaTexto + "T12:00:00")),
+          fechaTexto: fechaTexto,
+          creadoEn: serverTimestamp()
+        });
+        formulario.reset();
+        mensaje.textContent = "Compra guardada.";
+        mensaje.classList.remove("error-texto");
+        await cargarInventario();
+      } catch (error) {
+        console.error(error);
+        mensaje.textContent = "No se pudo guardar la compra.";
+        mensaje.classList.add("error-texto");
+      } finally {
+        boton.disabled = false;
+      }
+    });
+
+    document.getElementById("form-producto").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const formulario = e.target;
+      const mensaje = document.getElementById("prod-mensaje");
+      const nombre = document.getElementById("prod-nombre").value.trim();
+      const minimo = Number(document.getElementById("prod-minimo").value);
+      if (inventarioProductos.some(function (p) { return claveProducto(p.producto) === claveProducto(nombre); })) {
+        mensaje.textContent = "Ese producto ya existe.";
+        mensaje.classList.add("error-texto");
+        return;
+      }
+      try {
+        await addDoc(collection(db, "inventario"), {
+          producto: nombre,
+          categoria: document.getElementById("prod-categoria").value.trim(),
+          unidad: document.getElementById("prod-unidad").value.trim(),
+          minimo: minimo,
+          cabana: ""
+        });
+        formulario.reset();
+        mensaje.textContent = "Producto agregado.";
+        mensaje.classList.remove("error-texto");
+        await cargarInventario();
+      } catch (error) {
+        console.error(error);
+        mensaje.textContent = "No se pudo agregar el producto.";
+        mensaje.classList.add("error-texto");
+      }
+    });
+
+    const COLECCIONES_RESPALDO = ["solicitudes", "bloqueos", "bitacora", "staff", "historial", "config", "ajustes", "inventario", "compras"];
 
     // Convierte fechas de Firestore a texto para poder guardarlas en JSON
     function aJsonSeguro(valor) {
