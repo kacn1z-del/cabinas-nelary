@@ -1523,14 +1523,40 @@
     const CABANAS = ["Cabaña Grande", "Cabina Pequeña"];
     const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 4 };
 
+    // Valores por defecto. El panel puede cambiarlos y se guardan en config/cabanas.
+    const TARIFAS_BASE = {
+      "Cabaña Grande": { base: 55000, incluidas: 6, extra: 5000, max: 8 },
+      "Cabina Pequeña": { base: 45000, incluidas: 2, extra: 5000, max: 4 }
+    };
+    const TARIFAS = JSON.parse(JSON.stringify(TARIFAS_BASE));
+
     /* =========================================================
        TARIFAS POR NOCHE
        Cabina Pequeña: ₡45 000 por 2 personas; ₡5 000 extra por persona (hasta 4).
        Cabaña Grande: ₡55 000 por 2 a 6 personas; ₡5 000 extra por persona (hasta 8).
        ========================================================= */
     function precioNoche(cabana, personas) {
-      if (cabana === "Cabina Pequeña") return 45000 + Math.max(0, personas - 2) * 5000;
-      return 55000 + Math.max(0, personas - 6) * 5000;
+      const t = TARIFAS[cabana] || TARIFAS_BASE[cabana];
+      return t.base + Math.max(0, personas - t.incluidas) * t.extra;
+    }
+
+    // Lee las tarifas guardadas en config/cabanas (si el panel las cambió)
+    async function cargarTarifas() {
+      try {
+        const snap = await getDoc(doc(db, "config", "cabanas"));
+        if (!snap.exists() || !snap.data().tarifas) return;
+        const guardadas = snap.data().tarifas;
+        CABANAS.forEach(function (nombre) {
+          const g = guardadas[nombre];
+          if (!g) return;
+          const valores = { base: Number(g.base), incluidas: Number(g.incluidas), extra: Number(g.extra), max: Number(g.max) };
+          if (!Object.values(valores).every(Number.isFinite)) return;
+          TARIFAS[nombre] = valores;
+          MAX_PERSONAS[nombre] = valores.max;
+        });
+      } catch (error) {
+        console.warn("No se pudieron cargar las tarifas:", error);
+      }
     }
 
     function calcularTotal(cabana, personas, noches) {
@@ -2490,6 +2516,7 @@
        ========================================================= */
     aplicarIdioma();
     cargarTextos();
+    cargarTarifas();
     cargarDisponibilidad();
     cargarGaleria().then(pintarGaleria);
   </script>
