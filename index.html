@@ -1056,6 +1056,25 @@
     footer p { font-size: 0.85rem; letter-spacing: 1px; }
     footer .pie { margin-top: 40px; font-size: 0.72rem; opacity: 0.6; }
 
+    .redes {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      margin: 0 0 26px;
+      flex-wrap: wrap;
+    }
+    .redes a {
+      color: var(--arena, #f3ebd9);
+      text-decoration: none;
+      font-size: 0.85rem;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(243, 235, 217, 0.4);
+      padding-bottom: 3px;
+      transition: opacity 0.2s;
+    }
+    .redes a:hover, .redes a:focus-visible { opacity: 0.7; }
+
     /* ---------- BOTÓN FIJO EN CELULAR ---------- */
     .reservar-movil {
       display: none;
@@ -1457,6 +1476,10 @@
 
   <footer>
     <img class="logo-footer" src="logo-nelary.png" alt="NELARY">
+    <nav class="redes" aria-label="Redes sociales">
+      <a href="https://www.instagram.com/refugio_nelary" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <a href="https://www.tiktok.com/@refugionelary" target="_blank" rel="noopener noreferrer">TikTok</a>
+    </nav>
     <p data-i18n="footTagline">Refugio en el bosque · Costa Rica</p>
     <p class="pie" data-i18n="footCopy">© 2026 Refugio NELARY. Todos los derechos reservados.</p>
   </footer>
