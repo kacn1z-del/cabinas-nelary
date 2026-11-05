@@ -539,6 +539,7 @@
       <button type="button" class="tab" data-tab="ajustes">Datos de pago</button>
       <button type="button" class="tab" data-tab="sincronizacion">Sincronización</button>
       <button type="button" class="tab" data-tab="calendario">Calendario</button>
+      <button type="button" class="tab" data-tab="configuracion">Configuración</button>
     </nav>
 
     <!-- VISTA RESERVAS -->
@@ -696,6 +697,40 @@
       </form>
     </section>
 
+    <!-- VISTA CONFIGURACIÓN -->
+    <section id="vista-configuracion" hidden>
+      <div class="barra">
+        <h1>Configuración</h1>
+      </div>
+
+      <h2>Tarifas de las cabañas</h2>
+      <p class="ayuda">Precio por noche: un precio base para las personas incluidas, más un cargo por cada persona extra. Los cambios aplican a las nuevas solicitudes.</p>
+      <form id="form-tarifas" class="formulario">
+        <div id="tarifas-campos"></div>
+        <p class="error-texto" id="tarifas-mensaje"></p>
+        <button type="submit" class="btn">Guardar tarifas</button>
+      </form>
+
+      <h2>Usuarios de limpieza</h2>
+      <p class="ayuda">Cree una cuenta para el personal de limpieza. Después puede enviarle un correo para cambiar la contraseña, o desactivar la cuenta.</p>
+      <form id="form-staff" class="formulario">
+        <label for="staff-nombre">Nombre</label>
+        <input type="text" id="staff-nombre" required maxlength="80">
+        <label for="staff-correo">Correo</label>
+        <input type="email" id="staff-correo" required>
+        <label for="staff-clave">Contraseña temporal (mínimo 6 caracteres)</label>
+        <input type="password" id="staff-clave" required minlength="6">
+        <p class="error-texto" id="staff-mensaje"></p>
+        <button type="submit" class="btn">Crear usuario</button>
+      </form>
+      <div id="staff-lista"></div>
+
+      <h2>Respaldo</h2>
+      <p class="ayuda">Descarga un archivo con reservas, bitácora, personal, tarifas, historial y datos de pago. Guárdelo en un lugar privado, porque incluye los enlaces de sincronización.</p>
+      <button type="button" class="btn" id="btn-respaldo">Descargar respaldo</button>
+      <p class="error-texto" id="respaldo-mensaje"></p>
+    </section>
+
     <!-- VISTA CALENDARIO -->
     <section id="vista-calendario" hidden>
       <div class="barra">
@@ -749,6 +784,8 @@
       getAuth,
       signInWithEmailAndPassword,
       signOut,
+      createUserWithEmailAndPassword,
+      sendPasswordResetEmail,
       onAuthStateChanged
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -783,12 +820,38 @@
     let DATOS_PAGO = "[Completar: cuenta SINPE o transferencia]";
     const METODOS_PAGO = ["Transferencia", "SINPE Móvil", "Efectivo", "Tarjeta", "Otro"];
 
+    const NOMBRES_CABANAS = ["Cabaña Grande", "Cabina Pequeña"];
     const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 4 };
 
-    // Tarifas por noche (deben coincidir con la página pública)
+    // Tarifas por noche. Son los valores por defecto; se pueden cambiar en Configuración
+    // y se guardan en config/cabanas, que también lee la página pública.
+    const TARIFAS_BASE = {
+      "Cabaña Grande": { base: 55000, incluidas: 6, extra: 5000, max: 8 },
+      "Cabina Pequeña": { base: 45000, incluidas: 2, extra: 5000, max: 4 }
+    };
+    const TARIFAS = JSON.parse(JSON.stringify(TARIFAS_BASE));
+
     function precioNoche(cabana, personas) {
-      if (cabana === "Cabina Pequeña") return 45000 + Math.max(0, personas - 2) * 5000;
-      return 55000 + Math.max(0, personas - 6) * 5000;
+      const t = TARIFAS[cabana] || TARIFAS_BASE[cabana];
+      return t.base + Math.max(0, personas - t.incluidas) * t.extra;
+    }
+
+    async function cargarTarifas() {
+      try {
+        const snap = await getDoc(doc(db, "config", "cabanas"));
+        if (!snap.exists() || !snap.data().tarifas) return;
+        const guardadas = snap.data().tarifas;
+        NOMBRES_CABANAS.forEach(function (nombre) {
+          const g = guardadas[nombre];
+          if (!g) return;
+          const valores = { base: Number(g.base), incluidas: Number(g.incluidas), extra: Number(g.extra), max: Number(g.max) };
+          if (!Object.values(valores).every(Number.isFinite)) return;
+          TARIFAS[nombre] = valores;
+          MAX_PERSONAS[nombre] = valores.max;
+        });
+      } catch (error) {
+        console.warn("No se pudieron cargar las tarifas:", error);
+      }
     }
 
     function calcularTotal(cabana, personas, noches) {
@@ -1091,6 +1154,8 @@
         btnSalir.hidden = false;
         cargarSolicitudes();
         cargarDatosPago();
+        iniciarSincronizacionAutomatica();
+        cargarTarifas();
       } else {
         pantallaPanel.hidden = true;
         btnSalir.hidden = true;
@@ -1118,6 +1183,8 @@
         if (destino === "sincronizacion") cargarSync();
         document.getElementById("vista-calendario").hidden = destino !== "calendario";
         if (destino === "calendario") cargarCalendario();
+        document.getElementById("vista-configuracion").hidden = destino !== "configuracion";
+        if (destino === "configuracion") cargarConfiguracion();
       });
     });
 
@@ -1286,6 +1353,7 @@
           resultados.push(f.cabana + " (" + plataforma + "): " + r.noches + " noches leídas" +
             (r.omitidas ? ", " + r.omitidas + " ya ocupadas" : ""));
         }
+        await setDoc(REF_SYNC, { ultimaSincronizacion: serverTimestamp() }, { merge: true });
         mostrarSyncMensaje("Sincronizado. " + resultados.join(" · "));
       } catch (error) {
         console.error(error);
@@ -1294,6 +1362,255 @@
         boton.disabled = false;
       }
     });
+
+    /* =========================================================
+       CONFIGURACIÓN: TARIFAS, USUARIOS DE LIMPIEZA Y RESPALDO
+       ========================================================= */
+    const REF_TARIFAS = doc(db, "config", "cabanas");
+
+    // Segunda instancia de Firebase para crear usuarios sin cerrar la sesión del administrador
+    const appCreador = initializeApp(firebaseConfig, "creador-usuarios");
+    const authCreador = getAuth(appCreador);
+
+    function cargarConfiguracion() {
+      mostrarTarifas();
+      cargarStaff();
+    }
+
+    function mostrarTarifas() {
+      document.getElementById("tarifas-campos").innerHTML = NOMBRES_CABANAS.map(function (nombre, i) {
+        const t = TARIFAS[nombre] || TARIFAS_BASE[nombre];
+        return '<h3>' + esc(nombre) + "</h3>" +
+          '<label for="tarifa-' + i + '-base">Precio base por noche (₡)</label>' +
+          '<input type="number" id="tarifa-' + i + '-base" min="0" step="500" value="' + t.base + '" required>' +
+          '<label for="tarifa-' + i + '-incluidas">Personas incluidas en el precio base</label>' +
+          '<input type="number" id="tarifa-' + i + '-incluidas" min="1" max="20" value="' + t.incluidas + '" required>' +
+          '<label for="tarifa-' + i + '-extra">Cargo por cada persona extra (₡)</label>' +
+          '<input type="number" id="tarifa-' + i + '-extra" min="0" step="500" value="' + t.extra + '" required>' +
+          '<label for="tarifa-' + i + '-max">Máximo de personas</label>' +
+          '<input type="number" id="tarifa-' + i + '-max" min="1" max="20" value="' + t.max + '" required>';
+      }).join("");
+    }
+
+    document.getElementById("form-tarifas").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const mensaje = document.getElementById("tarifas-mensaje");
+      const tarifas = {};
+
+      for (let i = 0; i < NOMBRES_CABANAS.length; i++) {
+        const nombre = NOMBRES_CABANAS[i];
+        const t = {
+          base: Number(document.getElementById("tarifa-" + i + "-base").value),
+          incluidas: Number(document.getElementById("tarifa-" + i + "-incluidas").value),
+          extra: Number(document.getElementById("tarifa-" + i + "-extra").value),
+          max: Number(document.getElementById("tarifa-" + i + "-max").value)
+        };
+        if (!Object.values(t).every(Number.isFinite) || t.incluidas > t.max) {
+          mensaje.textContent = "Revise " + nombre + ": las personas incluidas no pueden ser más que el máximo.";
+          mensaje.classList.add("error-texto");
+          return;
+        }
+        tarifas[nombre] = t;
+      }
+
+      mensaje.textContent = "";
+      mensaje.classList.remove("error-texto");
+      try {
+        await setDoc(REF_TARIFAS, { tarifas: tarifas, actualizadoEn: serverTimestamp() }, { merge: true });
+        NOMBRES_CABANAS.forEach(function (nombre) {
+          TARIFAS[nombre] = tarifas[nombre];
+          MAX_PERSONAS[nombre] = tarifas[nombre].max;
+        });
+        mensaje.textContent = "Tarifas guardadas.";
+      } catch (error) {
+        console.error(error);
+        mensaje.textContent = "No se pudieron guardar las tarifas. Revise que su cuenta esté autorizada.";
+        mensaje.classList.add("error-texto");
+      }
+    });
+
+    async function cargarStaff() {
+      const lista = document.getElementById("staff-lista");
+      lista.innerHTML = '<p class="vacio">Cargando…</p>';
+      try {
+        const snap = await getDocs(collection(db, "staff"));
+        const personas = snap.docs.map(function (d) { return Object.assign({ uid: d.id }, d.data()); });
+        if (!personas.length) {
+          lista.innerHTML = '<p class="vacio">Todavía no hay usuarios de limpieza.</p>';
+          return;
+        }
+        lista.innerHTML = personas.map(function (p) {
+          const activa = p.rol === "limpieza";
+          return '<article class="tarjeta">' +
+            "<h3>" + esc(p.nombre || "Sin nombre") + "</h3>" +
+            '<p class="contacto">' + esc(p.correo || "Sin correo") + " · " + (activa ? "Activa" : "Desactivada") + "</p>" +
+            '<div class="acciones">' +
+              (p.correo ? '<button type="button" class="sec" data-clave="' + esc(p.correo) + '">Enviar cambio de contraseña</button>' : "") +
+              '<button type="button" class="sec" data-activar="' + esc(p.uid) + '" data-nuevo="' + (activa ? "inactiva" : "limpieza") + '">' +
+                (activa ? "Desactivar" : "Activar") + "</button>" +
+            "</div>" +
+          "</article>";
+        }).join("");
+      } catch (error) {
+        console.error(error);
+        lista.innerHTML = '<p class="vacio error">No se pudo leer el personal.</p>';
+      }
+    }
+
+    document.getElementById("form-staff").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const formulario = e.target;
+      const boton = formulario.querySelector("button[type=submit]");
+      const mensaje = document.getElementById("staff-mensaje");
+      const nombre = document.getElementById("staff-nombre").value.trim();
+      const correo = document.getElementById("staff-correo").value.trim();
+      const clave = document.getElementById("staff-clave").value;
+
+      mensaje.textContent = "";
+      mensaje.classList.remove("error-texto");
+      boton.disabled = true;
+      try {
+        const credencial = await createUserWithEmailAndPassword(authCreador, correo, clave);
+        await setDoc(doc(db, "staff", credencial.user.uid), {
+          nombre: nombre,
+          correo: correo,
+          rol: "limpieza",
+          creadoEn: serverTimestamp()
+        });
+        await signOut(authCreador);
+        formulario.reset();
+        mensaje.textContent = "Usuario creado. Entregue la contraseña temporal en persona.";
+        await cargarStaff();
+      } catch (error) {
+        console.error(error);
+        if (error.code === "auth/email-already-in-use") {
+          mensaje.textContent = "Ese correo ya tiene una cuenta.";
+        } else if (error.code === "auth/weak-password") {
+          mensaje.textContent = "La contraseña es muy corta. Use al menos 6 caracteres.";
+        } else {
+          mensaje.textContent = "No se pudo crear el usuario. Revise los datos e intente de nuevo.";
+        }
+        mensaje.classList.add("error-texto");
+      } finally {
+        boton.disabled = false;
+      }
+    });
+
+    document.getElementById("staff-lista").addEventListener("click", async function (e) {
+      const clave = e.target.closest("button[data-clave]");
+      if (clave) {
+        try {
+          await sendPasswordResetEmail(auth, clave.dataset.clave);
+          alert("Se envió el correo para cambiar la contraseña.");
+        } catch (error) {
+          console.error(error);
+          alert("No se pudo enviar el correo.");
+        }
+        return;
+      }
+
+      const activar = e.target.closest("button[data-activar]");
+      if (!activar) return;
+      activar.disabled = true;
+      try {
+        await updateDoc(doc(db, "staff", activar.dataset.activar), { rol: activar.dataset.nuevo });
+        await cargarStaff();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo cambiar el estado de la cuenta.");
+        activar.disabled = false;
+      }
+    });
+
+    const COLECCIONES_RESPALDO = ["solicitudes", "bloqueos", "bitacora", "staff", "historial", "config", "ajustes", "inventario"];
+
+    // Convierte fechas de Firestore a texto para poder guardarlas en JSON
+    function aJsonSeguro(valor) {
+      if (valor && typeof valor.toDate === "function") return valor.toDate().toISOString();
+      if (Array.isArray(valor)) return valor.map(aJsonSeguro);
+      if (valor && typeof valor === "object") {
+        const salida = {};
+        Object.keys(valor).forEach(function (clave) { salida[clave] = aJsonSeguro(valor[clave]); });
+        return salida;
+      }
+      return valor;
+    }
+
+    document.getElementById("btn-respaldo").addEventListener("click", async function () {
+      const boton = this;
+      const mensaje = document.getElementById("respaldo-mensaje");
+      boton.disabled = true;
+      mensaje.textContent = "Preparando respaldo…";
+      mensaje.classList.remove("error-texto");
+      try {
+        const colecciones = {};
+        for (const nombre of COLECCIONES_RESPALDO) {
+          const snap = await getDocs(collection(db, nombre));
+          colecciones[nombre] = snap.docs.map(function (d) {
+            return aJsonSeguro(Object.assign({ id: d.id }, d.data()));
+          });
+        }
+
+        const contenido = JSON.stringify({ generado: new Date().toISOString(), colecciones: colecciones }, null, 2);
+        const url = URL.createObjectURL(new Blob([contenido], { type: "application/json" }));
+        const enlace = document.createElement("a");
+        enlace.href = url;
+        enlace.download = "respaldo-nelary-" + new Date().toISOString().slice(0, 10) + ".json";
+        document.body.appendChild(enlace);
+        enlace.click();
+        enlace.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+        mensaje.textContent = "Respaldo descargado.";
+      } catch (error) {
+        console.error(error);
+        mensaje.textContent = "No se pudo preparar el respaldo. Revise su conexión.";
+        mensaje.classList.add("error-texto");
+      } finally {
+        boton.disabled = false;
+      }
+    });
+
+    /* ---------- Sincronización automática (cada hora mientras el panel esté abierto) ---------- */
+    async function sincronizarGuardadas() {
+      const snap = await getDoc(REF_SYNC);
+      const enlaces = snap.exists() ? (snap.data().enlaces || {}) : {};
+      const activas = SYNC_FUENTES.filter(function (f) { return enlaces[f.clave]; });
+
+      const resultados = [];
+      for (const f of activas) {
+        const r = await sincronizarFuente(f, enlaces[f.clave]);
+        const plataforma = f.clave.split("-")[1];
+        resultados.push(f.cabana + " (" + plataforma + "): " + r.noches + " noches leídas" +
+          (r.omitidas ? ", " + r.omitidas + " ya ocupadas" : ""));
+      }
+
+      await setDoc(REF_SYNC, { ultimaSincronizacion: serverTimestamp() }, { merge: true });
+      return resultados;
+    }
+
+    async function sincronizacionAutomatica() {
+      try {
+        const snap = await getDoc(REF_SYNC);
+        const ultima = snap.exists() && snap.data().ultimaSincronizacion
+          ? snap.data().ultimaSincronizacion.toDate()
+          : null;
+        // Si hubo una sincronización en la última hora, no se repite
+        if (ultima && Date.now() - ultima.getTime() < 60 * 60 * 1000) return;
+
+        const resultados = await sincronizarGuardadas();
+        if (resultados.length) mostrarSyncMensaje("Sincronización automática: " + resultados.join(" · "));
+      } catch (error) {
+        console.warn("Sincronización automática no completada:", error);
+      }
+    }
+
+    let sincronizacionTimer = null;
+    function iniciarSincronizacionAutomatica() {
+      if (sincronizacionTimer) return;
+      sincronizacionAutomatica();
+      // Revisa cada 10 minutos; sincroniza solo si pasó una hora desde la última vez
+      sincronizacionTimer = setInterval(sincronizacionAutomatica, 10 * 60 * 1000);
+    }
 
     /* =========================================================
        DATOS DE PAGO (se guardan en config/datosPago)
