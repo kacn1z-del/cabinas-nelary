@@ -1781,7 +1781,12 @@
           'data-accion="' + accion + '" data-id="' + id + '">' + texto + "</button>";
       }
       let html = "";
-      if (s.estado === "nueva") html += b("confirmar", "Confirmar") + b("rechazar", "Rechazar", true);
+      if (s.estado === "nueva") {
+        html += puedeConfirmar(s)
+          ? b("confirmar", "Confirmar")
+          : '<button type="button" data-accion="confirmar" data-id="' + id + '" disabled title="Registre el monto recibido primero">Confirmar</button>';
+        html += b("rechazar", "Rechazar", true);
+      }
       if (s.estado === "confirmada") html += b("completar", "Completar") + b("cancelar", "Cancelar", true);
       html += b("editar", "Editar", true) + b("abrir", "Ver en Reservas", true);
       return '<div class="acciones">' + html + "</div>";
@@ -1811,7 +1816,13 @@
 
       boton.disabled = true;
       try {
-        if (accion === "confirmar") await confirmar(s);
+        if (accion === "confirmar") {
+          if (!puedeConfirmar(s)) {
+            alert("Registre primero el monto recibido.");
+            return;
+          }
+          await confirmar(s);
+        }
         if (accion === "rechazar") await cambiarEstado(s, "rechazada", "¿Rechazar la solicitud de " + s.nombre + "? Las noches quedarán disponibles.", true);
         if (accion === "cancelar") await cambiarEstado(s, "cancelada", "¿Cancelar la reserva de " + s.nombre + "? Las noches quedarán disponibles.", true);
         if (accion === "completar") await cambiarEstado(s, "completada", "¿Marcar la estadía de " + s.nombre + " como completada?", false);
@@ -1907,6 +1918,11 @@
       }
     }
 
+    // Solo se puede confirmar una reserva cuando ya se registró el monto recibido
+    function puedeConfirmar(s) {
+      return resumenPago(s).pagado > 0;
+    }
+
     function botonesDe(s) {
       const id = esc(s.id);
       function boton(accion, texto, secundario) {
@@ -1916,7 +1932,13 @@
 
       let html = "";
       if (s.estado === "nueva") {
-        html += boton("confirmar", "Confirmar") + boton("rechazar", "Rechazar", true) + boton("editar", "Editar", true);
+        if (puedeConfirmar(s)) {
+          html += boton("confirmar", "Confirmar");
+        } else {
+          html += '<p class="ayuda">Registre el monto recibido en Pagos para poder confirmar.</p>' +
+            '<button type="button" data-accion="confirmar" data-id="' + id + '" disabled>Confirmar</button>';
+        }
+        html += boton("rechazar", "Rechazar", true) + boton("editar", "Editar", true);
       } else if (s.estado === "confirmada") {
         html += boton("editar", "Editar", true) + boton("completar", "Marcar completada") + boton("cancelar", "Cancelar reserva", true);
       } else if (s.estado === "bloqueada") {
@@ -2314,7 +2336,13 @@
 
       boton.disabled = true;
       try {
-        if (accion === "confirmar") await confirmar(s);
+        if (accion === "confirmar") {
+          if (!puedeConfirmar(s)) {
+            alert("Registre primero el monto recibido.");
+            return;
+          }
+          await confirmar(s);
+        }
         if (accion === "rechazar") await cambiarEstado(s, "rechazada", "¿Rechazar la solicitud de " + s.nombre + "? Las noches quedarán disponibles.", true);
         if (accion === "cancelar") await cambiarEstado(s, "cancelada", "¿Cancelar la reserva de " + s.nombre + "? Las noches quedarán disponibles.", true);
         if (accion === "completar") await cambiarEstado(s, "completada", "¿Marcar la estadía de " + s.nombre + " como completada?", false);
