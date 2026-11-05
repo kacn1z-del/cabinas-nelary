@@ -219,6 +219,14 @@
     .cal-grid .salon-dia { flex: none; width: 100%; max-width: none; }
     .cal-grid .salon-dia.sel { outline: 2px solid var(--verde); outline-offset: -2px; }
     .cal-grid .salon-dia.hoy .salon-num { text-decoration: underline; }
+
+    .documentos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .documentos button { font-size: 0.85rem; padding: 6px 12px; }
     .cal-color.completada { background: #E6E6E6; }
 
     /* ---------- SALÓN (plano de cabañas por días) ---------- */
@@ -1599,6 +1607,54 @@
       return html;
     }
 
+    /* ---------- Documentos privados (comprobante y cédulas) ---------- */
+    function documentosDe(s) {
+      const docs = [];
+      if (s.comprobante && s.comprobante.publicId) {
+        docs.push({ etiqueta: "Comprobante SINPE", doc: s.comprobante });
+      }
+      (s.cedulas || []).forEach(function (c, i) {
+        if (c && c.publicId) docs.push({ etiqueta: "Cédula " + (i + 1), doc: c });
+      });
+      if (!docs.length) return "";
+
+      const botones = docs.map(function (d) {
+        return '<button type="button" class="sec" data-doc="' + esc(d.doc.publicId) +
+          '" data-tipo="' + esc(d.doc.tipo || "image") +
+          '" data-formato="' + esc(d.doc.formato || "") + '">' + esc(d.etiqueta) + "</button>";
+      }).join("");
+      return '<div class="documentos">' + botones + "</div>";
+    }
+
+    lista.addEventListener("click", async function (e) {
+      const boton = e.target.closest("button[data-doc]");
+      if (!boton) return;
+
+      // La ventana se abre enseguida (iPhone bloquea ventanas abiertas tarde) y luego recibe el enlace
+      const ventana = window.open("", "_blank");
+      boton.disabled = true;
+      try {
+        const token = await auth.currentUser.getIdToken();
+        const consulta = new URLSearchParams({
+          publicId: boton.dataset.doc,
+          tipo: boton.dataset.tipo,
+          formato: boton.dataset.formato
+        });
+        const respuesta = await fetch("/api/documento?" + consulta.toString(), {
+          headers: { Authorization: "Bearer " + token }
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok) throw new Error(datos.error || "No se pudo abrir el documento.");
+        ventana.location = datos.url;
+      } catch (error) {
+        console.error(error);
+        if (ventana) ventana.close();
+        alert(error.message || "No se pudo abrir el documento.");
+      } finally {
+        boton.disabled = false;
+      }
+    });
+
     function tarjetaDe(s) {
       const noches = listaNoches(s.entrada, s.salida);
       const tel = soloDigitos(s.telefono);
@@ -1626,6 +1682,7 @@
         (partes.length ? '<p class="contacto">' + partes.join(" · ") + "</p>" : "") +
         (s.notas ? '<p class="notas">' + esc(s.notas) + "</p>" : "") +
         resumen +
+        documentosDe(s) +
         '<div class="acciones">' + botonesDe(s) + "</div>" +
         '<div class="historial-box" data-historial="' + esc(s.id) + '" hidden></div>' +
         '<div class="historial-box" data-pagos="' + esc(s.id) + '" hidden></div>' +
