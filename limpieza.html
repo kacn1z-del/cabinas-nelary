@@ -548,7 +548,7 @@
       const cabana = cabanaInput.value;
       const nombres = [...new Set(
         productos
-          .filter(function (p) { return !cabana || p.cabana === cabana; })
+          .filter(function (p) { return !cabana || !p.cabana || p.cabana === cabana; })
           .map(function (p) { return p.producto; })
       )].sort();
 
