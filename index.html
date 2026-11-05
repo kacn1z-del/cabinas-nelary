@@ -872,11 +872,23 @@
     /* ---------- CALENDARIO ESTILO AIRBNB ---------- */
     .cal-cabecera { display: none; }
 
+    /* Un mes por fila en el celular; dos meses lado a lado en pantallas anchas */
     #cal-grid {
-      max-height: 460px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 28px;
+      max-height: 520px;
       overflow-y: auto;
-      padding-right: 6px;
+      padding: 4px 8px 4px 0;
       -webkit-overflow-scrolling: touch;
+    }
+
+    @media (min-width: 760px) {
+      #cal-grid {
+        grid-template-columns: 1fr 1fr;
+        column-gap: 48px;
+        max-height: 560px;
+      }
     }
 
     .cal-mes-bloque { margin-bottom: 30px; }
@@ -892,7 +904,8 @@
     .cal-mes-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      row-gap: 4px;
+      row-gap: 6px;
+      column-gap: 2px;
     }
 
     .cal-celda {
@@ -935,10 +948,45 @@
     .cal-dia-nombre {
       text-align: center;
       font-size: 0.72rem;
+      letter-spacing: 0;
       color: var(--gris);
-      padding: 4px 0 6px;
+      padding: 4px 0 8px;
       font-weight: 600;
     }
+
+    .cal-pie {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--crema-oscuro);
+    }
+
+    .cal-restablecer {
+      background: none;
+      border: none;
+      color: var(--texto);
+      text-decoration: underline;
+      font-size: 0.95rem;
+      cursor: pointer;
+      padding: 10px 4px;
+    }
+
+    .cal-restablecer:disabled { color: #B5ACA0; cursor: not-allowed; text-decoration: none; }
+
+    .cal-siguiente-paso {
+      background: var(--texto);
+      color: var(--blanco);
+      border: none;
+      border-radius: 8px;
+      padding: 14px 26px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .cal-siguiente-paso:disabled { background: #D6D0C4; cursor: not-allowed; }
 
     /* ---------- CONTACTO ---------- */
     .contacto-grid {
@@ -1286,6 +1334,10 @@
               <span><i class="l-seleccion"></i><span data-i18n="legSeleccion">Tu estadía</span></span>
             </div>
             <div class="cal-resumen" id="cal-resumen" aria-live="polite"></div>
+            <div class="cal-pie">
+              <button type="button" class="cal-restablecer" id="cal-restablecer" data-i18n="calRestablecer">Restablecer</button>
+              <button type="button" class="cal-siguiente-paso" id="cal-siguiente-paso" data-i18n="calSiguientePaso">Siguiente</button>
+            </div>
           </div>
 
           <div class="fila">
@@ -1587,6 +1639,8 @@
         calToca: "Toca la fecha de entrada.",
         calEntrada: (f) => "Entrada: " + f + ". Ahora elige la fecha de salida.",
         calResumen: (n, desde, hasta) => (n === 1 ? "1 noche" : n + " noches") + " · del " + desde + " al " + hasta,
+        calRestablecer: "Restablecer",
+        calSiguientePaso: "Siguiente",
         calPrecio: (total, adelanto) => "Total " + total + " · Adelanto (50 %) " + adelanto,
         conEyebrow: "Contacto",
         conTitulo: "Hablemos",
@@ -1697,6 +1751,8 @@
         calToca: "Tap your check-in date.",
         calEntrada: (f) => "Check-in: " + f + ". Now choose your check-out date.",
         calResumen: (n, desde, hasta) => (n === 1 ? "1 night" : n + " nights") + " · from " + desde + " to " + hasta,
+        calRestablecer: "Reset",
+        calSiguientePaso: "Next",
         calPrecio: (total, adelanto) => "Total " + total + " · Deposit (50 %) " + adelanto,
         conEyebrow: "Contact",
         conTitulo: "Let's talk",
@@ -2033,6 +2089,7 @@
       } else {
         calResumen.textContent = t("calToca");
       }
+      actualizarPieCalendario();
     }
 
     function seleccionarDia(texto) {
@@ -2118,6 +2175,28 @@
       renderCalendario();
     });
 
+
+    /* Pie del calendario: Restablecer y Siguiente (como en Airbnb) */
+    const btnRestablecer = document.getElementById("cal-restablecer");
+    const btnSiguientePaso = document.getElementById("cal-siguiente-paso");
+
+    function actualizarPieCalendario() {
+      btnSiguientePaso.disabled = !(entradaSel && salidaSel);
+      btnRestablecer.disabled = !(entradaSel || salidaSel);
+    }
+
+    btnRestablecer.addEventListener("click", function () {
+      entradaSel = "";
+      salidaSel = "";
+      sincronizarInputs();
+      renderCalendario();
+    });
+
+    btnSiguientePaso.addEventListener("click", function () {
+      if (!entradaSel || !salidaSel) return;
+      document.getElementById("nombre").scrollIntoView({ behavior: "smooth", block: "center" });
+      document.getElementById("nombre").focus({ preventScroll: true });
+    });
 
     // Los botones "Reservar" de cada cabaña preseleccionan la cabaña
     document.querySelectorAll("[data-cabana]").forEach(function (boton) {
