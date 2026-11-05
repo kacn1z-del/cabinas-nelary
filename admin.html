@@ -1818,7 +1818,7 @@
       try {
         if (accion === "confirmar") {
           if (!puedeConfirmar(s)) {
-            alert("Registre primero el monto recibido.");
+            alert("Para confirmar falta: " + faltasParaConfirmar(s).join(", ") + ".");
             return;
           }
           await confirmar(s);
@@ -1918,9 +1918,19 @@
       }
     }
 
-    // Solo se puede confirmar una reserva cuando ya se registró el monto recibido
+    // Requisitos para confirmar: datos completos, comprobante, una cédula por persona y monto registrado
+    function faltasParaConfirmar(s) {
+      const faltas = [];
+      if (!s.nombre || !s.telefono || !s.correo) faltas.push("datos de contacto");
+      if (!s.comprobante || !s.comprobante.publicId) faltas.push("comprobante");
+      const cedulas = (s.cedulas || []).filter(function (c) { return c && c.publicId; });
+      if (cedulas.length < Number(s.personas || 0)) faltas.push("foto de cédula de cada persona");
+      if (!(resumenPago(s).pagado > 0)) faltas.push("monto recibido");
+      return faltas;
+    }
+
     function puedeConfirmar(s) {
-      return resumenPago(s).pagado > 0;
+      return faltasParaConfirmar(s).length === 0;
     }
 
     function botonesDe(s) {
@@ -1935,7 +1945,7 @@
         if (puedeConfirmar(s)) {
           html += boton("confirmar", "Confirmar");
         } else {
-          html += '<p class="ayuda">Registre el monto recibido en Pagos para poder confirmar.</p>' +
+          html += '<p class="ayuda">Para confirmar falta: ' + esc(faltasParaConfirmar(s).join(", ")) + ".</p>" +
             '<button type="button" data-accion="confirmar" data-id="' + id + '" disabled>Confirmar</button>';
         }
         html += boton("rechazar", "Rechazar", true) + boton("editar", "Editar", true);
@@ -2338,7 +2348,7 @@
       try {
         if (accion === "confirmar") {
           if (!puedeConfirmar(s)) {
-            alert("Registre primero el monto recibido.");
+            alert("Para confirmar falta: " + faltasParaConfirmar(s).join(", ") + ".");
             return;
           }
           await confirmar(s);
