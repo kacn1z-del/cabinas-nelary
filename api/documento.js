@@ -71,6 +71,68 @@ function firmar(parametros, secreto) {
   return createHash("sha1").update(aFirmar + secreto).digest("hex");
 }
 
+// Borra documentos de Cloudinary con la API de administración (solo llamada por administradores)
+async function borrarDocumentos(req, res, apiKey, apiSecret) {
+  let cuerpo = req.body;
+  if (typeof cuerpo === "string") {
+    try { cuerpo = JSON.parse(cuerpo); } catch (error) { cuerpo = null; }
+  }
+
+  const lista = cuerpo && Array.isArray(cuerpo.documentos) ? cuerpo.documentos : [];
+  if (!lista.length || lista.length > 10) {
+    res.status(400).json({ error: "Lista de documentos no válida." });
+    return;
+  }
+
+  const errores = [];
+  for (const documento of lista) {
+    const publicId = documento && documento.publicId;
+    const tipo = documento && documento.tipo;
+    if (typeof publicId !== "string" || publicId.indexOf(CARPETA) !== 0 || !/^[A-Za-z0-9_\/\-]+$/.test(publicId)) {
+      errores.push("Documento no válido.");
+      continue;
+    }
+    if (TIPOS_VALIDOS.indexOf(tipo) === -1) {
+      errores.push("Tipo de archivo no válido.");
+      continue;
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const parametros = {
+      public_id: publicId,
+      timestamp: timestamp,
+      type: "authenticated"
+    };
+    const firma = firmar(parametros, apiSecret);
+
+    const formulario = new URLSearchParams();
+    Object.keys(parametros).forEach(function (clave) { formulario.append(clave, String(parametros[clave])); });
+    formulario.append("api_key", apiKey);
+    formulario.append("signature", firma);
+
+    try {
+      const respuesta = await fetch("https://api.cloudinary.com/v1_1/" + CLOUD_NAME + "/" + tipo + "/destroy", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formulario.toString()
+      });
+      const resultado = await respuesta.json();
+      // "not found" significa que ya no existe, así que cuenta como borrado
+      if (!respuesta.ok && resultado.result !== "not found") {
+        errores.push("No se pudo borrar un documento.");
+      }
+    } catch (error) {
+      errores.push("No se pudo conectar con Cloudinary.");
+    }
+  }
+
+  if (errores.length) {
+    res.status(502).json({ error: errores.join(" ") });
+    return;
+  }
+  res.status(200).json({ ok: true, borrados: lista.length });
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
 
@@ -98,6 +160,15 @@ export default async function handler(req, res) {
 
   if (ADMIN_UIDS.indexOf(uid) === -1) {
     res.status(403).json({ error: "Esta cuenta no es administradora." });
+    return;
+  }
+
+  if (req.method === "DELETE") {
+    await borrarDocumentos(req, res, apiKey, apiSecret);
+    return;
+  }
+  if (req.method !== "GET") {
+    res.status(405).json({ error: "Método no permitido." });
     return;
   }
 
