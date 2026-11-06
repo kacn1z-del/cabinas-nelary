@@ -551,6 +551,7 @@
       <button type="button" class="tab" data-tab="ajustes">Datos de pago</button>
       <button type="button" class="tab" data-tab="sincronizacion">Sincronización</button>
       <button type="button" class="tab" data-tab="calendario">Calendario</button>
+      <button type="button" class="tab" data-tab="cabanas">Cabañas</button>
       <button type="button" class="tab" data-tab="configuracion">Configuración</button>
       <button type="button" class="tab" data-tab="inventario">Inventario</button>
     </nav>
@@ -603,8 +604,6 @@
               <label for="f-cabana">Cabaña</label>
               <select id="f-cabana">
                 <option value="">Seleccione</option>
-                <option value="Cabaña Grande">Cabaña Grande</option>
-                <option value="Cabina Pequeña">Cabina Pequeña</option>
               </select>
             </div>
             <div>
@@ -658,8 +657,6 @@
         <div class="controles">
           <select id="filtro-cabana" aria-label="Filtrar por cabaña">
             <option value="todas">Todas las cabañas</option>
-            <option value="Cabaña Grande">Cabaña Grande</option>
-            <option value="Cabina Pequeña">Cabina Pequeña</option>
           </select>
           <select id="filtro-tipo" aria-label="Filtrar por tipo">
             <option value="todos">Todos los tipos</option>
@@ -689,6 +686,62 @@
       </form>
     </section>
 
+    <!-- VISTA CABAÑAS -->
+    <section id="vista-cabanas" hidden>
+      <div class="barra">
+        <h1>Cabañas</h1>
+        <div class="controles">
+          <button type="button" class="btn" id="btn-nueva-cabana">+ Nueva cabaña</button>
+        </div>
+      </div>
+      <p class="ayuda">Aquí agrega, cambia o quita cabañas, y administra sus fotos. Una cabaña inactiva no aparece en el sitio ni acepta nuevas reservas, pero conserva sus reservas e historial. El enlace de Airbnb se pega en Sincronización.</p>
+
+      <div id="cabanas-migracion" hidden>
+        <p class="ayuda">Todavía no hay cabañas guardadas. Este botón crea Cabaña Grande y Cabina Pequeña con los textos y precios actuales. Después puede editarlos.</p>
+        <button type="button" class="btn" id="btn-crear-iniciales">Crear las dos cabañas actuales</button>
+      </div>
+
+      <div id="cabanas-lista"></div>
+
+      <div id="cabana-editor" hidden>
+        <h2 id="cabana-editor-titulo">Nueva cabaña</h2>
+        <form id="form-cabana" class="formulario">
+          <label for="cab-nombre">Nombre</label>
+          <input type="text" id="cab-nombre" maxlength="60" required>
+          <p class="ayuda">El nombre no se puede cambiar después de crear la cabaña.</p>
+          <label for="cab-desc">Descripción (español)</label>
+          <textarea id="cab-desc" rows="4" maxlength="600"></textarea>
+          <label for="cab-desc-en">Descripción (inglés)</label>
+          <textarea id="cab-desc-en" rows="4" maxlength="600"></textarea>
+          <label for="cab-servicios">Servicios incluidos (español, uno por línea)</label>
+          <textarea id="cab-servicios" rows="5"></textarea>
+          <label for="cab-servicios-en">Servicios incluidos (inglés, uno por línea)</label>
+          <textarea id="cab-servicios-en" rows="5"></textarea>
+          <label for="cab-max">Máximo de personas</label>
+          <input type="number" id="cab-max" min="1" max="20" required>
+          <label for="cab-incluidas">Personas incluidas en el precio base</label>
+          <input type="number" id="cab-incluidas" min="1" max="20" required>
+          <label for="cab-base">Precio base por noche (₡)</label>
+          <input type="number" id="cab-base" min="0" step="500" required>
+          <label for="cab-extra">Cargo por cada persona extra (₡)</label>
+          <input type="number" id="cab-extra" min="0" step="500" required>
+          <label class="check"><input type="checkbox" id="cab-activa" checked> Visible en el sitio y disponible para reservas</label>
+          <p class="error-texto" id="cab-mensaje"></p>
+          <button type="submit" class="btn">Guardar cabaña</button>
+          <button type="button" class="btn sec" id="cab-cancelar">Cerrar</button>
+        </form>
+
+        <div id="cab-fotos-bloque" hidden>
+          <h3>Fotos de la cabaña</h3>
+          <p class="ayuda">Las fotos aparecen en la sección de esta cabaña, en el orden de la lista. Use ↑ y ↓ para cambiar el orden.</p>
+          <label for="cab-fotos" class="btn">Agregar fotos</label>
+          <input type="file" id="cab-fotos" accept="image/*" multiple hidden>
+          <p class="ayuda" id="cab-fotos-progreso"></p>
+          <div id="cab-fotos-lista"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- VISTA SINCRONIZACIÓN -->
     <section id="vista-sincronizacion" hidden>
       <div class="barra">
@@ -696,14 +749,7 @@
       </div>
       <p class="ayuda">Pegue el enlace iCal de cada plataforma. Las noches ocupadas en Airbnb o Booking se bloquean aquí. Deje vacío lo que no use.</p>
       <form id="form-sync" class="formulario">
-        <label for="sync-grande-airbnb">Cabaña Grande · Airbnb</label>
-        <textarea id="sync-grande-airbnb" rows="2"></textarea>
-        <label for="sync-grande-booking">Cabaña Grande · Booking</label>
-        <textarea id="sync-grande-booking" rows="2"></textarea>
-        <label for="sync-pequena-airbnb">Cabina Pequeña · Airbnb</label>
-        <textarea id="sync-pequena-airbnb" rows="2"></textarea>
-        <label for="sync-pequena-booking">Cabina Pequeña · Booking</label>
-        <textarea id="sync-pequena-booking" rows="2"></textarea>
+        <div id="sync-campos"></div>
         <p class="error-texto" id="sync-mensaje"></p>
         <button type="button" class="btn" id="btn-guardar-sync">Guardar enlaces</button>
         <button type="button" class="btn" id="btn-sincronizar">Sincronizar ahora</button>
@@ -828,11 +874,7 @@
         <label for="te-nombre">Nombre (ej. Temporada alta, Fin de semana)</label>
         <input type="text" id="te-nombre" maxlength="80" required>
         <label for="te-cabana">Cabaña</label>
-        <select id="te-cabana">
-          <option value="Cabaña Grande">Cabaña Grande</option>
-          <option value="Cabina Pequeña">Cabina Pequeña</option>
-          <option value="Todas las cabañas">Todas las cabañas</option>
-        </select>
+        <select id="te-cabana"></select>
         <label for="te-desde">Primera noche</label>
         <input type="date" id="te-desde" required>
         <label for="te-hasta">Última noche</label>
@@ -887,10 +929,7 @@
       <div class="barra">
         <h1>Calendario</h1>
         <div class="controles">
-          <select id="cal-cabana" aria-label="Cabaña">
-            <option value="Cabaña Grande">Cabaña Grande</option>
-            <option value="Cabina Pequeña">Cabina Pequeña</option>
-          </select>
+          <select id="cal-cabana" aria-label="Cabaña"></select>
         </div>
       </div>
       <div class="cal-nav">
@@ -971,16 +1010,13 @@
     let DATOS_PAGO = "[Completar: cuenta SINPE o transferencia]";
     const METODOS_PAGO = ["Transferencia", "SINPE Móvil", "Efectivo", "Tarjeta", "Otro"];
 
-    const NOMBRES_CABANAS = ["Cabaña Grande", "Cabina Pequeña"];
-    const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 4 };
-
-    // Tarifas por noche. Son los valores por defecto; se pueden cambiar en Configuración
-    // y se guardan en config/cabanas, que también lee la página pública.
-    const TARIFAS_BASE = {
-      "Cabaña Grande": { base: 55000, incluidas: 6, extra: 5000, max: 8 },
-      "Cabina Pequeña": { base: 45000, incluidas: 2, extra: 5000, max: 4 }
-    };
-    const TARIFAS = JSON.parse(JSON.stringify(TARIFAS_BASE));
+    // Cabañas: se leen de la colección "cabanas" (cargarCabanas).
+    // El nombre de cada cabaña es la clave en reservas y bloqueos.
+    let CABANAS = [];
+    let NOMBRES_CABANAS = [];
+    const MAX_PERSONAS = {};
+    const TARIFAS_BASE = {};
+    const TARIFAS = {};
 
     /* =========================================================
        TEMPORADAS Y PROMOCIONES (colección "tarifas")
@@ -1060,21 +1096,7 @@
 
     async function cargarTarifas() {
       await cargarTarifasEspeciales();
-      try {
-        const snap = await getDoc(doc(db, "config", "cabanas"));
-        if (!snap.exists() || !snap.data().tarifas) return;
-        const guardadas = snap.data().tarifas;
-        NOMBRES_CABANAS.forEach(function (nombre) {
-          const g = guardadas[nombre];
-          if (!g) return;
-          const valores = { base: Number(g.base), incluidas: Number(g.incluidas), extra: Number(g.extra), max: Number(g.max) };
-          if (!Object.values(valores).every(Number.isFinite)) return;
-          TARIFAS[nombre] = valores;
-          MAX_PERSONAS[nombre] = valores.max;
-        });
-      } catch (error) {
-        console.warn("No se pudieron cargar las tarifas:", error);
-      }
+      await cargarCabanas();
     }
 
     const ETIQUETAS_ESTADO = {
@@ -1398,6 +1420,8 @@
         vistaBitacora.hidden = destino !== "bitacora";
         vistaAjustes.hidden = destino !== "ajustes";
         document.getElementById("vista-sincronizacion").hidden = destino !== "sincronizacion";
+        document.getElementById("vista-cabanas").hidden = destino !== "cabanas";
+        if (destino === "cabanas") cargarListaCabanas();
         if (destino === "bitacora") cargarBitacora();
         if (destino === "ajustes") mostrarDatosPago();
         if (destino === "sincronizacion") cargarSync();
@@ -1415,12 +1439,7 @@
        Los enlaces se guardan en ajustes/sincronizacion.
        Las noches leídas se guardan como bloqueos "reservado".
        ========================================================= */
-    const SYNC_FUENTES = [
-      { clave: "grande-airbnb", cabana: "Cabaña Grande", input: "sync-grande-airbnb" },
-      { clave: "grande-booking", cabana: "Cabaña Grande", input: "sync-grande-booking" },
-      { clave: "pequena-airbnb", cabana: "Cabina Pequeña", input: "sync-pequena-airbnb" },
-      { clave: "pequena-booking", cabana: "Cabina Pequeña", input: "sync-pequena-booking" }
-    ];
+    let SYNC_FUENTES = [];
     const REF_SYNC = doc(db, "ajustes", "sincronizacion");
 
     function mostrarSyncMensaje(texto, esError) {
@@ -1639,7 +1658,9 @@
       mensaje.textContent = "";
       mensaje.classList.remove("error-texto");
       try {
-        await setDoc(REF_TARIFAS, { tarifas: tarifas, actualizadoEn: serverTimestamp() }, { merge: true });
+        await Promise.all(CABANAS.map(function (c) {
+          return updateDoc(doc(db, "cabanas", c.id), tarifas[c.nombre]);
+        }));
         NOMBRES_CABANAS.forEach(function (nombre) {
           TARIFAS[nombre] = tarifas[nombre];
           MAX_PERSONAS[nombre] = tarifas[nombre].max;
@@ -1753,6 +1774,441 @@
         mensaje.classList.add("error-texto");
       }
     });
+
+    /* =========================================================
+       CABAÑAS: lista, alta, cambios, activar, borrar y fotos
+       Cada cabaña es un documento en "cabanas" con id fijo.
+       Límite de cabañas en total: MAX_CABANAS.
+       ========================================================= */
+    const MAX_CABANAS = 4;
+    const CLOUD_NAME_ADMIN = "kyhdlu4q";
+    const UPLOAD_PRESET_GALERIA = "nelary_galeria";
+    let cabanaEditandoId = null;
+    let FOTOS_CABANA = [];
+
+    function idDesdeNombre(nombre) {
+      return nombre.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    }
+
+    async function cargarCabanas() {
+      try {
+        const snap = await getDocs(query(collection(db, "cabanas"), orderBy("orden")));
+        CABANAS = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      } catch (error) {
+        console.warn("No se pudieron cargar las cabañas:", error);
+      }
+      NOMBRES_CABANAS = CABANAS.map(function (c) { return c.nombre; });
+      CABANAS.forEach(function (c) {
+        TARIFAS[c.nombre] = { base: Number(c.base), incluidas: Number(c.incluidas), extra: Number(c.extra), max: Number(c.max) };
+        MAX_PERSONAS[c.nombre] = TARIFAS[c.nombre].max;
+      });
+      llenarSelectsCabanas();
+      construirCamposSync();
+      mostrarTarifas();
+      cargarListaCabanas();
+      cargarSync();
+    }
+
+    function llenarSelectsCabanas() {
+      const activas = CABANAS.filter(function (c) { return c.activa !== false; });
+      const opciones = function (lista) {
+        return lista.map(function (c) {
+          return '<option value="' + esc(c.nombre) + '">' + esc(c.nombre) + "</option>";
+        }).join("");
+      };
+      document.getElementById("f-cabana").innerHTML = '<option value="">Seleccione</option>' + opciones(activas);
+      document.getElementById("filtro-cabana").innerHTML = '<option value="todas">Todas las cabañas</option>' + opciones(CABANAS);
+      document.getElementById("te-cabana").innerHTML = opciones(CABANAS) +
+        '<option value="Todas las cabañas">Todas las cabañas</option>';
+      const cal = document.getElementById("cal-cabana");
+      const anterior = calCabana;
+      cal.innerHTML = opciones(activas);
+      calCabana = activas.some(function (c) { return c.nombre === anterior; })
+        ? anterior
+        : (activas[0] ? activas[0].nombre : "");
+      cal.value = calCabana;
+    }
+
+    function construirCamposSync() {
+      SYNC_FUENTES = CABANAS.map(function (c) {
+        return { clave: c.id + "-airbnb", cabana: c.nombre, input: "sync-" + c.id + "-airbnb" };
+      });
+      document.getElementById("sync-campos").innerHTML = SYNC_FUENTES.map(function (f) {
+        return '<label for="' + f.input + '">' + esc(f.cabana) + " · Airbnb</label>" +
+          '<textarea id="' + f.input + '" rows="2"></textarea>';
+      }).join("");
+    }
+
+    function cargarListaCabanas() {
+      document.getElementById("cabanas-migracion").hidden = CABANAS.length > 0;
+      document.getElementById("btn-nueva-cabana").disabled = CABANAS.length >= MAX_CABANAS;
+      document.getElementById("cabanas-lista").innerHTML = CABANAS.map(function (c) {
+        const activa = c.activa !== false;
+        return '<article class="tarjeta">' +
+          '<span class="cab">' + (activa ? "Activa" : "Inactiva") + "</span>" +
+          "<p><strong>" + esc(c.nombre) + "</strong><br>" + esc(c.descripcion || "Sin descripción todavía") + "</p>" +
+          '<p class="ayuda">Máximo ' + esc(c.max) + " personas · base " + fmtColones(c.base) + " por noche</p>" +
+          "<div>" +
+          '<button type="button" class="btn btn-mini" data-cab-accion="editar" data-id="' + esc(c.id) + '">Editar</button>' +
+          '<button type="button" class="btn btn-mini" data-cab-accion="' + (activa ? "desactivar" : "activar") + '" data-id="' + esc(c.id) + '">' +
+          (activa ? "Desactivar" : "Activar") + "</button>" +
+          '<button type="button" class="btn btn-mini peligro" data-cab-accion="borrar" data-id="' + esc(c.id) + '">Borrar</button>' +
+          "</div></article>";
+      }).join("");
+    }
+
+    function abrirEditorCabana(id) {
+      const c = id ? CABANAS.find(function (x) { return x.id === id; }) : null;
+      cabanaEditandoId = c ? c.id : null;
+      document.getElementById("cabana-editor-titulo").textContent = c ? "Editar " + c.nombre : "Nueva cabaña";
+      document.getElementById("cab-nombre").value = c ? c.nombre : "";
+      document.getElementById("cab-nombre").disabled = !!c;
+      document.getElementById("cab-desc").value = c ? (c.descripcion || "") : "";
+      document.getElementById("cab-desc-en").value = c ? (c.descripcionEn || "") : "";
+      document.getElementById("cab-servicios").value = c ? (c.servicios || []).join("\n") : "";
+      document.getElementById("cab-servicios-en").value = c ? (c.serviciosEn || []).join("\n") : "";
+      document.getElementById("cab-max").value = c ? c.max : 4;
+      document.getElementById("cab-incluidas").value = c ? c.incluidas : 2;
+      document.getElementById("cab-base").value = c ? c.base : 45000;
+      document.getElementById("cab-extra").value = c ? c.extra : 5000;
+      document.getElementById("cab-activa").checked = c ? c.activa !== false : true;
+      document.getElementById("cab-mensaje").textContent = "";
+      document.getElementById("cab-mensaje").classList.remove("error-texto");
+      document.getElementById("cab-fotos-bloque").hidden = !c;
+      document.getElementById("cab-fotos-progreso").textContent = "";
+      document.getElementById("cabana-editor").hidden = false;
+      if (c) cargarFotosCabana(c.id);
+      document.getElementById("cabana-editor").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function cerrarEditorCabana() {
+      cabanaEditandoId = null;
+      document.getElementById("cabana-editor").hidden = true;
+    }
+
+    document.getElementById("form-cabana").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const mensaje = document.getElementById("cab-mensaje");
+      const nombre = document.getElementById("cab-nombre").value.trim();
+      const lineas = function (id) {
+        return document.getElementById(id).value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+      };
+      const datos = {
+        descripcion: document.getElementById("cab-desc").value.trim(),
+        descripcionEn: document.getElementById("cab-desc-en").value.trim(),
+        servicios: lineas("cab-servicios"),
+        serviciosEn: lineas("cab-servicios-en"),
+        max: Number(document.getElementById("cab-max").value),
+        incluidas: Number(document.getElementById("cab-incluidas").value),
+        base: Number(document.getElementById("cab-base").value),
+        extra: Number(document.getElementById("cab-extra").value),
+        activa: document.getElementById("cab-activa").checked
+      };
+      const error = function (texto) {
+        mensaje.textContent = texto;
+        mensaje.classList.add("error-texto");
+      };
+
+      if (!cabanaEditandoId) {
+        if (!nombre) return error("Escriba el nombre de la cabaña.");
+        if (CABANAS.length >= MAX_CABANAS) return error("Ya hay " + MAX_CABANAS + " cabañas, que es el máximo.");
+        if (CABANAS.some(function (c) { return c.nombre.toLowerCase() === nombre.toLowerCase(); })) {
+          return error("Ya existe una cabaña con ese nombre.");
+        }
+      }
+      if (!(datos.max >= 1) || !(datos.incluidas >= 1) || datos.incluidas > datos.max || !(datos.base >= 0) || !(datos.extra >= 0)) {
+        return error("Revise la capacidad y los precios: las personas incluidas no pueden ser más que el máximo.");
+      }
+
+      const boton = e.target.querySelector("button[type=submit]");
+      boton.disabled = true;
+      try {
+        if (cabanaEditandoId) {
+          await updateDoc(doc(db, "cabanas", cabanaEditandoId), datos);
+          await cargarCabanas();
+          abrirEditorCabana(cabanaEditandoId);
+        } else {
+          const id = idDesdeNombre(nombre);
+          if (!id || CABANAS.some(function (c) { return c.id === id; })) {
+            return error("Use otro nombre para la cabaña.");
+          }
+          await setDoc(doc(db, "cabanas", id), Object.assign({
+            nombre: nombre,
+            orden: CABANAS.length,
+            creadoEn: serverTimestamp()
+          }, datos));
+          await cargarCabanas();
+          abrirEditorCabana(id);
+        }
+        document.getElementById("cab-mensaje").textContent = "Cabaña guardada.";
+        document.getElementById("cab-mensaje").classList.remove("error-texto");
+      } catch (err) {
+        console.error(err);
+        error("No se pudo guardar. Revise que su cuenta esté autorizada.");
+      } finally {
+        boton.disabled = false;
+      }
+    });
+
+    async function cambiarActivaCabana(id, activa) {
+      const c = CABANAS.find(function (x) { return x.id === id; });
+      if (!c) return;
+      const pregunta = activa
+        ? "¿Activar " + c.nombre + "? Volverá a aparecer en el sitio."
+        : "¿Desactivar " + c.nombre + "? Deja de aparecer en el sitio y no acepta nuevas reservas. Sus reservas e historial se conservan.";
+      if (!confirm(pregunta)) return;
+      try {
+        await updateDoc(doc(db, "cabanas", id), { activa: activa });
+        await cargarCabanas();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo cambiar el estado. Intente de nuevo.");
+      }
+    }
+
+    async function borrarCabana(id) {
+      const c = CABANAS.find(function (x) { return x.id === id; });
+      if (!c) return;
+      try {
+        const [solicitudes, bloqueos] = await Promise.all([
+          getDocs(query(collection(db, "solicitudes"), where("cabana", "==", c.nombre), limit(1))),
+          getDocs(query(collection(db, "bloqueos"), where("cabana", "==", c.nombre), limit(1)))
+        ]);
+        if (!solicitudes.empty || !bloqueos.empty) {
+          alert("Esta cabaña tiene reservas o bloqueos guardados, por eso no se puede borrar. Use Desactivar.");
+          return;
+        }
+        if (!confirm("¿Borrar " + c.nombre + " y sus fotos? Esto no se puede deshacer.")) return;
+        const fotos = await getDocs(query(collection(db, "galeria"), where("cabana", "==", id)));
+        const lote = writeBatch(db);
+        fotos.forEach(function (f) { lote.delete(f.ref); });
+        lote.delete(doc(db, "cabanas", id));
+        await lote.commit();
+        if (cabanaEditandoId === id) cerrarEditorCabana();
+        await cargarCabanas();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo borrar. Intente de nuevo.");
+      }
+    }
+
+    async function crearCabanasIniciales() {
+      if (!confirm("¿Crear Cabaña Grande y Cabina Pequeña con los textos y precios actuales?")) return;
+      let tarifas = {
+        grande: { base: 55000, incluidas: 6, extra: 5000, max: 8 },
+        pequena: { base: 45000, incluidas: 2, extra: 5000, max: 4 }
+      };
+      try {
+        const snap = await getDoc(doc(db, "config", "cabanas"));
+        if (snap.exists() && snap.data().tarifas) {
+          const g = snap.data().tarifas;
+          if (g["Cabaña Grande"]) tarifas.grande = g["Cabaña Grande"];
+          if (g["Cabina Pequeña"]) tarifas.pequena = g["Cabina Pequeña"];
+        }
+      } catch (error) {
+        console.warn("Se usan los valores por defecto:", error);
+      }
+      const iniciales = [
+        {
+          id: "grande", nombre: "Cabaña Grande", orden: 0,
+          descripcion: "Espacio amplio para hasta 8 personas, con sala de sillones, cocina equipada, dos baños completos y jacuzzi recién instalado.",
+          descripcionEn: "Spacious cabin for up to 8 guests, with a lounge with sofas, equipped kitchen, two full bathrooms and a newly installed jacuzzi.",
+          servicios: ["Hasta 8 huéspedes", "2 baños completos", "Cocina equipada", "Jacuzzi", "Fogón al aire libre", "Vista a la montaña"],
+          serviciosEn: ["Up to 8 guests", "2 full bathrooms", "Equipped kitchen", "Jacuzzi", "Outdoor fire pit", "Mountain view"],
+          base: Number(tarifas.grande.base), incluidas: Number(tarifas.grande.incluidas), extra: Number(tarifas.grande.extra), max: Number(tarifas.grande.max)
+        },
+        {
+          id: "pequena", nombre: "Cabina Pequeña", orden: 1,
+          descripcion: "Acogedora y romántica, pensada para dos. Madera por todos lados, ventana en el techo y una tina para relajarse.",
+          descripcionEn: "Cozy and romantic, made for two. Wood everywhere, a skylight and a bathtub to relax.",
+          servicios: ["2 huéspedes", "Baño privado con ducha", "Cocina equipada", "Tina de baño", "Vista al bosque", "Ideal para parejas"],
+          serviciosEn: ["2 guests", "Private bathroom with shower", "Equipped kitchen", "Bathtub", "Forest view", "Ideal for couples"],
+          base: Number(tarifas.pequena.base), incluidas: Number(tarifas.pequena.incluidas), extra: Number(tarifas.pequena.extra), max: Number(tarifas.pequena.max)
+        }
+      ];
+      try {
+        const lote = writeBatch(db);
+        iniciales.forEach(function (c) {
+          const id = c.id;
+          const datos = Object.assign({ activa: true, creadoEn: serverTimestamp() }, c);
+          delete datos.id;
+          lote.set(doc(db, "cabanas", id), datos);
+        });
+        await lote.commit();
+
+        // Las fotos antiguas sin cabaña se asignan a la Cabaña Grande
+        const galeria = await getDocs(collection(db, "galeria"));
+        const lote2 = writeBatch(db);
+        let pendientes = 0;
+        galeria.forEach(function (f) {
+          if (!f.data().cabana) {
+            lote2.update(f.ref, { cabana: "grande" });
+            pendientes++;
+          }
+        });
+        if (pendientes) await lote2.commit();
+        await cargarCabanas();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudieron crear las cabañas. Revise que su cuenta esté autorizada.");
+      }
+    }
+
+    /* ---------- Fotos de una cabaña ---------- */
+    async function subirFotoCloudinary(archivo) {
+      const datos = new FormData();
+      datos.append("file", archivo);
+      datos.append("upload_preset", UPLOAD_PRESET_GALERIA);
+      const respuesta = await fetch("https://api.cloudinary.com/v1_1/" + CLOUD_NAME_ADMIN + "/image/upload", {
+        method: "POST",
+        body: datos
+      });
+      const resultado = await respuesta.json();
+      if (!respuesta.ok) {
+        throw new Error((resultado.error && resultado.error.message) || "Cloudinary respondió con error " + respuesta.status);
+      }
+      return resultado;
+    }
+
+    async function cargarFotosCabana(id) {
+      const caja = document.getElementById("cab-fotos-lista");
+      caja.innerHTML = '<p class="vacio">Cargando fotos…</p>';
+      try {
+        const snap = await getDocs(query(collection(db, "galeria"), where("cabana", "==", id)));
+        FOTOS_CABANA = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
+          .sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); });
+        pintarFotosCabana();
+      } catch (error) {
+        console.error(error);
+        caja.innerHTML = '<p class="error-texto">No se pudieron cargar las fotos.</p>';
+      }
+    }
+
+    function pintarFotosCabana() {
+      const caja = document.getElementById("cab-fotos-lista");
+      if (!FOTOS_CABANA.length) {
+        caja.innerHTML = '<p class="vacio">Esta cabaña todavía no tiene fotos.</p>';
+        return;
+      }
+      caja.innerHTML = FOTOS_CABANA.map(function (f, i) {
+        return '<div class="foto-admin">' +
+          '<img src="' + esc(f.url) + '" alt="" loading="lazy">' +
+          '<div class="foto-acciones">' +
+          '<button type="button" class="btn btn-mini" data-foto-accion="subir" data-id="' + esc(f.id) + '"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
+          '<button type="button" class="btn btn-mini" data-foto-accion="bajar" data-id="' + esc(f.id) + '"' +
+          (i === FOTOS_CABANA.length - 1 ? " disabled" : "") + ">↓</button>" +
+          '<label class="btn btn-mini">Cambiar<input type="file" accept="image/*" data-foto-cambiar="' + esc(f.id) + '" hidden></label>' +
+          '<button type="button" class="btn btn-mini peligro" data-foto-accion="borrar" data-id="' + esc(f.id) + '">Borrar</button>' +
+          "</div></div>";
+      }).join("");
+    }
+
+    async function moverFoto(id, direccion) {
+      const i = FOTOS_CABANA.findIndex(function (f) { return f.id === id; });
+      const j = i + direccion;
+      if (i < 0 || j < 0 || j >= FOTOS_CABANA.length) return;
+      const nueva = FOTOS_CABANA.slice();
+      nueva.splice(j, 0, nueva.splice(i, 1)[0]);
+      try {
+        const lote = writeBatch(db);
+        nueva.forEach(function (f, k) { lote.update(doc(db, "galeria", f.id), { orden: k }); });
+        await lote.commit();
+        FOTOS_CABANA = nueva.map(function (f, k) { return Object.assign({}, f, { orden: k }); });
+        pintarFotosCabana();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo cambiar el orden. Intente de nuevo.");
+      }
+    }
+
+    async function borrarFoto(id) {
+      if (!confirm("¿Quitar esta foto de la cabaña? La imagen queda en Cloudinary.")) return;
+      try {
+        await deleteDoc(doc(db, "galeria", id));
+        await cargarFotosCabana(cabanaEditandoId);
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo borrar la foto.");
+      }
+    }
+
+    async function cambiarFoto(id, archivo) {
+      const progreso = document.getElementById("cab-fotos-progreso");
+      progreso.textContent = "Subiendo la nueva foto…";
+      try {
+        const img = await subirFotoCloudinary(archivo);
+        await updateDoc(doc(db, "galeria", id), { url: img.secure_url, publicId: img.public_id });
+        progreso.textContent = "Foto cambiada.";
+        await cargarFotosCabana(cabanaEditandoId);
+      } catch (error) {
+        console.error(error);
+        progreso.textContent = "No se pudo cambiar la foto: " + error.message;
+      }
+    }
+
+    document.getElementById("cab-fotos").addEventListener("change", async function (e) {
+      const archivos = Array.from(e.target.files || []);
+      e.target.value = "";
+      if (!archivos.length || !cabanaEditandoId) return;
+      const progreso = document.getElementById("cab-fotos-progreso");
+      let siguiente = FOTOS_CABANA.length
+        ? Math.max.apply(null, FOTOS_CABANA.map(function (f) { return Number(f.orden) || 0; })) + 1
+        : 0;
+      let fallos = 0;
+      for (let k = 0; k < archivos.length; k++) {
+        progreso.textContent = "Subiendo " + (k + 1) + " de " + archivos.length + "…";
+        try {
+          const img = await subirFotoCloudinary(archivos[k]);
+          await addDoc(collection(db, "galeria"), {
+            url: img.secure_url,
+            publicId: img.public_id,
+            descripcion: "",
+            clase: "",
+            cabana: cabanaEditandoId,
+            orden: siguiente,
+            creadoEn: serverTimestamp()
+          });
+          siguiente++;
+        } catch (error) {
+          console.error(error);
+          fallos++;
+        }
+      }
+      progreso.textContent = fallos ? "Algunas fotos no se pudieron subir." : "Fotos agregadas.";
+      await cargarFotosCabana(cabanaEditandoId);
+    });
+
+    document.getElementById("cab-fotos-lista").addEventListener("click", function (e) {
+      const boton = e.target.closest("button[data-foto-accion]");
+      if (!boton) return;
+      const id = boton.dataset.id;
+      if (boton.dataset.fotoAccion === "subir") moverFoto(id, -1);
+      if (boton.dataset.fotoAccion === "bajar") moverFoto(id, 1);
+      if (boton.dataset.fotoAccion === "borrar") borrarFoto(id);
+    });
+
+    document.getElementById("cab-fotos-lista").addEventListener("change", function (e) {
+      const input = e.target.closest("input[data-foto-cambiar]");
+      if (!input || !input.files || !input.files[0]) return;
+      cambiarFoto(input.dataset.fotoCambiar, input.files[0]);
+      input.value = "";
+    });
+
+    document.getElementById("cabanas-lista").addEventListener("click", function (e) {
+      const boton = e.target.closest("button[data-cab-accion]");
+      if (!boton) return;
+      const id = boton.dataset.id;
+      const accion = boton.dataset.cabAccion;
+      if (accion === "editar") abrirEditorCabana(id);
+      if (accion === "activar") cambiarActivaCabana(id, true);
+      if (accion === "desactivar") cambiarActivaCabana(id, false);
+      if (accion === "borrar") borrarCabana(id);
+    });
+
+    document.getElementById("btn-nueva-cabana").addEventListener("click", function () { abrirEditorCabana(null); });
+    document.getElementById("cab-cancelar").addEventListener("click", cerrarEditorCabana);
+    document.getElementById("btn-crear-iniciales").addEventListener("click", crearCabanasIniciales);
 
     async function cargarStaff() {
       const lista = document.getElementById("staff-lista");
@@ -2482,7 +2938,7 @@
        Muestra un mes por cabaña. Al tocar un día, se ven los detalles.
        ========================================================= */
     const CAL_DIAS_CORTOS = ["L", "M", "M", "J", "V", "S", "D"];
-    let calCabana = "Cabaña Grande";
+    let calCabana = "";
     let calMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     let calDia = null;
     let calBloqueos = [];
