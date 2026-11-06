@@ -278,11 +278,7 @@
         </div>
         <div>
           <label for="cabana-nueva">Cabaña</label>
-          <select id="cabana-nueva">
-            <option value="grande">Cabaña Grande</option>
-            <option value="pequena">Cabina Pequeña</option>
-            <option value="general">General (galería principal)</option>
-          </select>
+          <select id="cabana-nueva"></select>
         </div>
         <div class="fila">
           <div>
@@ -361,11 +357,31 @@
       ["alta", "Alta (2 filas)"]
     ];
 
-    const CABANAS = [
-      ["grande", "Cabaña Grande"],
-      ["pequena", "Cabina Pequeña"],
-      ["general", "General (galería principal)"]
-    ];
+    // Cabañas: se leen de la colección "cabanas" (se administran en el panel)
+    let CABANAS = [["general", "General (galería principal)"]];
+
+    async function cargarCabanasGaleria() {
+      let cabanas = [["grande", "Cabaña Grande"], ["pequena", "Cabina Pequeña"]];
+      try {
+        const snap = await getDocs(query(collection(db, "cabanas"), orderBy("orden")));
+        if (!snap.empty) {
+          cabanas = snap.docs.map(function (d) {
+            const c = d.data();
+            return [d.id, c.nombre + (c.activa === false ? " (inactiva)" : "")];
+          });
+        }
+      } catch (error) {
+        console.warn("No se pudieron cargar las cabañas:", error);
+      }
+      CABANAS = cabanas.concat([["general", "General (galería principal)"]]);
+      cabanaNueva.textContent = "";
+      CABANAS.forEach(function (par) {
+        const opcion = document.createElement("option");
+        opcion.value = par[0];
+        opcion.textContent = par[1];
+        cabanaNueva.appendChild(opcion);
+      });
+    }
 
     /* =========================================================
        ELEMENTOS
@@ -423,7 +439,7 @@
         btnSalir.hidden = false;
         btnTextos.hidden = false;
         btnSolicitudes.hidden = false;
-        cargarFotos();
+        cargarCabanasGaleria().then(cargarFotos);
       } else {
         pantallaEditor.hidden = true;
         btnSalir.hidden = true;
