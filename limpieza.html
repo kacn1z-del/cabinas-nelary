@@ -299,8 +299,6 @@
           <label for="cabana">Cabaña</label>
           <select id="cabana" required>
             <option value="">Seleccione</option>
-            <option value="Cabaña Grande">Cabaña Grande</option>
-            <option value="Cabina Pequeña">Cabina Pequeña</option>
           </select>
         </div>
         <div>
@@ -417,6 +415,34 @@
     const formBitacora = document.getElementById("form-bitacora");
     const botonGuardar = document.getElementById("boton-guardar");
     const cabanaInput = document.getElementById("cabana");
+
+    // Las cabañas activas vienen de la colección "cabanas" (lectura pública)
+    async function cargarCabanasLimpieza() {
+      let nombres = ["Cabaña Grande", "Cabina Pequeña"];
+      try {
+        const snap = await getDocs(collection(db, "cabanas"));
+        if (!snap.empty) {
+          nombres = snap.docs
+            .map(function (d) { return d.data(); })
+            .filter(function (c) { return c.activa !== false; })
+            .sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); })
+            .map(function (c) { return c.nombre; });
+        }
+      } catch (error) {
+        console.warn("No se pudieron cargar las cabañas:", error);
+      }
+      const actual = cabanaInput.value;
+      while (cabanaInput.options.length > 1) cabanaInput.remove(1);
+      nombres.forEach(function (nombre) {
+        const opcion = document.createElement("option");
+        opcion.value = nombre;
+        opcion.textContent = nombre;
+        cabanaInput.appendChild(opcion);
+      });
+      cabanaInput.value = actual;
+    }
+    cargarCabanasLimpieza();
+
     const tipoInput = document.getElementById("tipo");
     const productoInput = document.getElementById("producto");
     const cantidadInput = document.getElementById("cantidad");
