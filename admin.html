@@ -3149,16 +3149,21 @@
     function abrirFormularioDesdeCalendario() {
       if (!calDia) return;
       cerrarModalCal();
-      const fechaSalida = fechaTextoCal(new Date(new Date(calDia + "T12:00:00").getTime() + 24 * 60 * 60 * 1000));
-      irAPestana("reservas");
-      abrirFormulario(null);
-      fTipo.value = "confirmada";
-      fCabana.value = calCabana;
-      fEntrada.value = calDia;
-      fSalida.value = fechaSalida;
-      fNombre.value = "";
-      actualizarPrecioForm();
-      fNombre.focus();
+      const dia = calDia;
+      const cabana = calCabana;
+      // Espera a que termine el toque y se cierre la ventana antes de abrir el formulario.
+      // Así el selector de archivos del celular no queda bloqueado por el toque anterior.
+      setTimeout(function () {
+        const fechaSalida = fechaTextoCal(new Date(new Date(dia + "T12:00:00").getTime() + 24 * 60 * 60 * 1000));
+        irAPestana("reservas");
+        abrirFormulario(null);
+        fTipo.value = "confirmada";
+        fCabana.value = cabana;
+        fEntrada.value = dia;
+        fSalida.value = fechaSalida;
+        fNombre.value = "";
+        actualizarPrecioForm();
+      }, 350);
     }
 
     document.getElementById("cal-detalle").addEventListener("click", function (e) {
