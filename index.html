@@ -1224,57 +1224,7 @@
         <p class="subtitulo" data-i18n="cabSub">Cada cabaña tiene su propio carácter y su propia privacidad.</p>
       </div>
 
-      <!-- Cabaña grande -->
-      <div class="cabana" style="margin-top: 100px;">
-        <div class="cabana-foto reveal">
-          <img src="fachada-fogon.jpg" alt="Fachada de la cabaña grande con fogón encendido de noche">
-        </div>
-        <div class="cabana-texto reveal">
-          <span class="cabana-numero">Nº 01</span>
-          <h3 data-i18n="cabGrandeNombre">Cabaña Grande</h3>
-          <p class="descripcion" id="txt-desc-grande" data-i18n="descGrande">Espacio amplio para hasta 8 personas, con sala de sillones, cocina equipada, dos baños completos y jacuzzi recién instalado.</p>
-          <ul class="servicios">
-            <li data-i18n="grandeS1">Hasta 8 huéspedes</li>
-            <li data-i18n="grandeS2">2 baños completos</li>
-            <li data-i18n="grandeS3">Cocina equipada</li>
-            <li data-i18n="grandeS4">Jacuzzi</li>
-            <li data-i18n="grandeS5">Fogón al aire libre</li>
-            <li data-i18n="grandeS6">Vista a la montaña</li>
-          </ul>
-          <div class="cabana-pie">
-            <div class="tarifa"><span data-i18n="tarifa">Tarifa</span><strong data-i18n="aConsultar">A consultar</strong></div>
-            <a href="#reservar" class="btn btn-linea" data-cabana="Cabaña Grande" data-i18n="btnReservarCabana">Reservar</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="mini-galeria" data-cabana="grande" hidden></div>
-
-      <!-- Cabina pequeña -->
-      <div class="cabana invertida">
-        <div class="cabana-foto reveal">
-          <img src="cabina-habitacion.jpg" alt="Habitación de la cabina pequeña con cama doble y paredes de madera">
-        </div>
-        <div class="cabana-texto reveal">
-          <span class="cabana-numero">Nº 02</span>
-          <h3 data-i18n="cabPequeNombre">Cabina Pequeña</h3>
-          <p class="descripcion" id="txt-desc-pequena" data-i18n="descPequena">Acogedora y romántica, pensada para dos. Madera por todos lados, ventana en el techo y una tina para relajarse.</p>
-          <ul class="servicios">
-            <li data-i18n="pequeS1">2 huéspedes</li>
-            <li data-i18n="pequeS2">Baño privado con ducha</li>
-            <li data-i18n="pequeS3">Cocina equipada</li>
-            <li data-i18n="pequeS4">Tina de baño</li>
-            <li data-i18n="pequeS5">Vista al bosque</li>
-            <li data-i18n="pequeS6">Ideal para parejas</li>
-          </ul>
-          <div class="cabana-pie">
-            <div class="tarifa"><span data-i18n="tarifa">Tarifa</span><strong data-i18n="aConsultar">A consultar</strong></div>
-            <a href="#reservar" class="btn btn-linea" data-cabana="Cabina Pequeña" data-i18n="btnReservarCabana">Reservar</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="mini-galeria" data-cabana="pequena" hidden></div>
+      <div id="cabanas-lista"></div>
     </div>
   </section>
 
@@ -1387,8 +1337,6 @@
             <label for="cabana" data-i18n="lblCabana">Cabaña</label>
             <select id="cabana" required>
               <option value="" data-i18n="optElige">Selecciona una cabaña</option>
-              <option value="Cabaña Grande" data-i18n="optGrande">Cabaña Grande · hasta 8 personas</option>
-              <option value="Cabina Pequeña" data-i18n="optPequena">Cabina Pequeña · 2 personas</option>
             </select>
           </div>
 
@@ -1599,15 +1547,11 @@
       });
     }
 
-    const CABANAS = ["Cabaña Grande", "Cabina Pequeña"];
-    const MAX_PERSONAS = { "Cabaña Grande": 8, "Cabina Pequeña": 4 };
-
-    // Valores por defecto. El panel puede cambiarlos y se guardan en config/cabanas.
-    const TARIFAS_BASE = {
-      "Cabaña Grande": { base: 55000, incluidas: 6, extra: 5000, max: 8 },
-      "Cabina Pequeña": { base: 45000, incluidas: 2, extra: 5000, max: 4 }
-    };
-    const TARIFAS = JSON.parse(JSON.stringify(TARIFAS_BASE));
+    // Cabañas activas con sus nombres, tarifas y límites. Las llena cargarTarifas() desde Firestore.
+    let CABANAS = [];
+    let CABANAS_DATOS = [];
+    let MAX_PERSONAS = {};
+    let TARIFAS = {};
 
     /* =========================================================
        TARIFAS POR NOCHE
@@ -1638,7 +1582,7 @@
 
     // Precio de una noche: primero la temporada (si hay) y después la promoción (si hay)
     function tarifaDeNoche(cabana, personas, fecha) {
-      const base = TARIFAS[cabana] || TARIFAS_BASE[cabana];
+      const base = TARIFAS[cabana] || { base: 0, incluidas: 0, extra: 0 };
       const temporada = TARIFAS_ESPECIALES.find(function (r) {
         return r.tipo === "temporada" && aplicaRegla(r, cabana, fecha);
       });
@@ -1692,24 +1636,147 @@
       };
     }
 
-    // Lee las tarifas guardadas en config/cabanas (si el panel las cambió)
+    /* =========================================================
+       CABAÑAS
+       Vienen de la colección "cabanas" (se administran en el panel).
+       Si todavía no hay cabañas guardadas, se usan las dos originales.
+       ========================================================= */
+    const CABANAS_RESPALDO = [
+      {
+        id: "grande", nombre: "Cabaña Grande", orden: 0, activa: true,
+        descripcion: "Espacio amplio para hasta 8 personas, con sala de sillones, cocina equipada, dos baños completos y jacuzzi recién instalado.",
+        descripcionEn: "Spacious cabin for up to 8 guests, with a lounge with sofas, equipped kitchen, two full bathrooms and a newly installed jacuzzi.",
+        servicios: ["Hasta 8 huéspedes", "2 baños completos", "Cocina equipada", "Jacuzzi", "Fogón al aire libre", "Vista a la montaña"],
+        serviciosEn: ["Up to 8 guests", "2 full bathrooms", "Equipped kitchen", "Jacuzzi", "Outdoor fire pit", "Mountain view"],
+        base: 55000, incluidas: 6, extra: 5000, max: 8,
+        fotoRespaldo: "fachada-fogon.jpg", fotoRespaldoAlt: "Fachada de la cabaña grande con fogón encendido"
+      },
+      {
+        id: "pequena", nombre: "Cabina Pequeña", orden: 1, activa: true,
+        descripcion: "Acogedora y romántica, pensada para dos. Madera por todos lados, ventana en el techo y una tina para relajarse.",
+        descripcionEn: "Cozy and romantic, made for two. Wood everywhere, a skylight and a bathtub to relax.",
+        servicios: ["2 huéspedes", "Baño privado con ducha", "Cocina equipada", "Tina de baño", "Vista al bosque", "Ideal para parejas"],
+        serviciosEn: ["2 guests", "Private bathroom with shower", "Equipped kitchen", "Bathtub", "Forest view", "Ideal for couples"],
+        base: 45000, incluidas: 2, extra: 5000, max: 4,
+        fotoRespaldo: "cabina-habitacion.jpg", fotoRespaldoAlt: "Habitación de la cabina pequeña con cama doble y paredes de madera"
+      }
+    ];
+
+    // Lee las cabañas activas con sus tarifas y límites
     async function cargarTarifas() {
       await cargarTarifasEspeciales();
+      let guardadas = null;
       try {
-        const snap = await getDoc(doc(db, "config", "cabanas"));
-        if (!snap.exists() || !snap.data().tarifas) return;
-        const guardadas = snap.data().tarifas;
-        CABANAS.forEach(function (nombre) {
-          const g = guardadas[nombre];
-          if (!g) return;
-          const valores = { base: Number(g.base), incluidas: Number(g.incluidas), extra: Number(g.extra), max: Number(g.max) };
-          if (!Object.values(valores).every(Number.isFinite)) return;
-          TARIFAS[nombre] = valores;
-          MAX_PERSONAS[nombre] = valores.max;
-        });
+        const snap = await getDocs(query(collection(db, "cabanas"), orderBy("orden")));
+        guardadas = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
       } catch (error) {
-        console.warn("No se pudieron cargar las tarifas:", error);
+        console.warn("No se pudieron cargar las cabañas:", error);
       }
+      const origen = guardadas && guardadas.length ? guardadas : CABANAS_RESPALDO;
+      CABANAS_DATOS = origen.filter(function (c) {
+        return c.activa !== false && [c.base, c.incluidas, c.extra, c.max].every(function (v) { return Number.isFinite(Number(v)); });
+      });
+      CABANAS = CABANAS_DATOS.map(function (c) { return c.nombre; });
+      TARIFAS = {};
+      MAX_PERSONAS = {};
+      CABANAS_DATOS.forEach(function (c) {
+        TARIFAS[c.nombre] = { base: Number(c.base), incluidas: Number(c.incluidas), extra: Number(c.extra), max: Number(c.max) };
+        MAX_PERSONAS[c.nombre] = TARIFAS[c.nombre].max;
+      });
+      llenarSelectorCabanas();
+      renderCabanas();
+    }
+
+    function crearEl(tag, clase, texto) {
+      const el = document.createElement(tag);
+      if (clase) el.className = clase;
+      if (texto !== undefined) el.textContent = texto;
+      return el;
+    }
+
+    function descripcionCabana(c) {
+      return idioma === "en" && c.descripcionEn ? c.descripcionEn : (c.descripcion || "");
+    }
+
+    function serviciosCabana(c) {
+      return idioma === "en" && c.serviciosEn && c.serviciosEn.length ? c.serviciosEn : (c.servicios || []);
+    }
+
+    // Primera foto de la cabaña en la galería; si no hay, la de respaldo
+    function fotoDeCabana(c) {
+      const propia = FOTOS_GALERIA.find(function (f) { return f.cabana === c.id; });
+      if (propia) return { src: propia.src, alt: propia.alt };
+      if (c.fotoRespaldo) return { src: c.fotoRespaldo, alt: c.fotoRespaldoAlt || c.nombre };
+      return null;
+    }
+
+    // Dibuja las tarjetas de cabañas, sus botones "Reservar" y sus mini galerías
+    function renderCabanas() {
+      const caja = document.getElementById("cabanas-lista");
+      if (!caja) return;
+      caja.textContent = "";
+
+      CABANAS_DATOS.forEach(function (c, i) {
+        const tarjeta = crearEl("div", i % 2 === 1 ? "cabana invertida" : "cabana");
+        if (i === 0) tarjeta.style.marginTop = "100px";
+
+        const foto = fotoDeCabana(c);
+        if (foto) {
+          const bloqueFoto = crearEl("div", "cabana-foto reveal");
+          const img = crearEl("img");
+          img.src = foto.src;
+          img.alt = foto.alt;
+          img.loading = "lazy";
+          bloqueFoto.appendChild(img);
+          tarjeta.appendChild(bloqueFoto);
+        }
+
+        const texto = crearEl("div", "cabana-texto reveal");
+        texto.appendChild(crearEl("span", "cabana-numero", "Nº 0" + (i + 1)));
+        texto.appendChild(crearEl("h3", "", c.nombre));
+        texto.appendChild(crearEl("p", "descripcion", descripcionCabana(c)));
+        const lista = crearEl("ul", "servicios");
+        serviciosCabana(c).forEach(function (s) { lista.appendChild(crearEl("li", "", s)); });
+        texto.appendChild(lista);
+
+        const pie = crearEl("div", "cabana-pie");
+        const tarifa = crearEl("div", "tarifa");
+        tarifa.appendChild(crearEl("span", "", t("tarifa")));
+        tarifa.appendChild(crearEl("strong", "", t("aConsultar")));
+        pie.appendChild(tarifa);
+        const reservar = crearEl("a", "btn btn-linea", t("btnReservarCabana"));
+        reservar.href = "#reservar";
+        reservar.dataset.reservarCabana = c.nombre;
+        pie.appendChild(reservar);
+        texto.appendChild(pie);
+
+        tarjeta.appendChild(texto);
+        caja.appendChild(tarjeta);
+
+        const mini = crearEl("div", "mini-galeria");
+        mini.dataset.cabana = c.id;
+        mini.hidden = true;
+        caja.appendChild(mini);
+      });
+
+      caja.querySelectorAll(".reveal").forEach(function (el) { observador.observe(el); });
+      pintarMiniGalerias(FOTOS_GALERIA);
+    }
+
+    // Llena el selector de la reserva con las cabañas activas
+    function llenarSelectorCabanas() {
+      const actual = cabanaSelect.value;
+      cabanaSelect.textContent = "";
+      const vacia = crearEl("option", "", t("optElige"));
+      vacia.value = "";
+      cabanaSelect.appendChild(vacia);
+      CABANAS_DATOS.forEach(function (c) {
+        const texto = c.nombre + (idioma === "en" ? " · up to " + c.max + " guests" : " · hasta " + c.max + " personas");
+        const opcion = crearEl("option", "", texto);
+        opcion.value = c.nombre;
+        cabanaSelect.appendChild(opcion);
+      });
+      cabanaSelect.value = actual;
     }
 
 
@@ -1977,8 +2044,6 @@
     const CAMPOS_FIRESTORE = {
       "txt-hero": "heroTexto",
       "txt-intro": "introTexto",
-      "txt-desc-grande": "descGrande",
-      "txt-desc-pequena": "descPequena",
       "txt-ubicacion": "ubicacion",
       "txt-telefono": "telefono",
       "txt-correo": "correo"
@@ -1993,7 +2058,8 @@
         const campo = CAMPOS_FIRESTORE[id];
         const usaEn = idioma === "en" && BILINGUES.indexOf(campo) !== -1;
         const valor = usaEn ? contenidoSitio[campo + "En"] : contenidoSitio[campo];
-        if (valor) document.getElementById(id).textContent = valor;
+        const elemento = document.getElementById(id);
+        if (valor && elemento) elemento.textContent = valor;
       });
     }
 
@@ -2020,6 +2086,8 @@
       btnIdioma.setAttribute("aria-label", idioma === "es" ? "View in English" : "Ver en español");
 
       aplicarTextosFirestore();
+      renderCabanas();
+      llenarSelectorCabanas();
       renderCalendario();
     }
 
@@ -2399,11 +2467,11 @@
     });
 
     // Los botones "Reservar" de cada cabaña preseleccionan la cabaña
-    document.querySelectorAll("[data-cabana]").forEach(function (boton) {
-      boton.addEventListener("click", function () {
-        cabanaSelect.value = boton.dataset.cabana;
-        cabanaSelect.dispatchEvent(new Event("change"));
-      });
+    document.getElementById("cabanas-lista").addEventListener("click", function (e) {
+      const boton = e.target.closest("[data-reservar-cabana]");
+      if (!boton) return;
+      cabanaSelect.value = boton.dataset.reservarCabana;
+      cabanaSelect.dispatchEvent(new Event("change"));
     });
 
     /* =========================================================
@@ -2555,6 +2623,8 @@
       { src: "cabina-tina.jpg", alt: "Cabina pequeña: tina de baño junto a la ventana", clase: "" }
     ];
 
+    // Todas las fotos (de todas las cabañas): alimentan las tarjetas y las mini galerías
+    let FOTOS_GALERIA = [];
     const grid = document.getElementById("grid-galeria");
     const visor = document.getElementById("visor");
     const visorImg = document.getElementById("visor-img");
@@ -2719,16 +2789,16 @@
        ========================================================= */
     aplicarIdioma();
     cargarTextos();
-    cargarTarifas();
-    cargarDisponibilidad();
+    cargarTarifas().then(function () { cargarDisponibilidad(); });
     cargarGaleria().then(function (lista) {
       // La galería general solo muestra fotos generales; las de cada cabaña salen en su sección
       const generales = lista.filter(function (f) { return f.cabana === "general"; });
       const hayGenerales = generales.length > 0;
       document.getElementById("galeria").hidden = !hayGenerales;
       document.getElementById("nav-galeria").hidden = !hayGenerales;
+      FOTOS_GALERIA = lista;
       pintarGaleria(generales);
-      pintarMiniGalerias(lista);
+      renderCabanas();
     });
   </script>
 
