@@ -817,6 +817,51 @@
         <button type="submit" class="btn">Guardar tarifas</button>
       </form>
 
+      <h2>Temporadas y promociones</h2>
+      <p class="ayuda">Una temporada cambia el precio base de un rango de fechas (por ejemplo, temporada alta). Una promoción descuenta un porcentaje o un monto por noche en ese rango. Si una noche tiene ambas, primero se aplica la temporada y después la promoción. Los cambios aplican a las reservas que se creen o se editen después.</p>
+      <form id="form-tarifa-especial" class="formulario">
+        <label for="te-tipo">Tipo</label>
+        <select id="te-tipo">
+          <option value="temporada">Temporada (cambia el precio)</option>
+          <option value="promocion">Promoción (descuento)</option>
+        </select>
+        <label for="te-nombre">Nombre (ej. Temporada alta, Fin de semana)</label>
+        <input type="text" id="te-nombre" maxlength="80" required>
+        <label for="te-cabana">Cabaña</label>
+        <select id="te-cabana">
+          <option value="Cabaña Grande">Cabaña Grande</option>
+          <option value="Cabina Pequeña">Cabina Pequeña</option>
+          <option value="Todas las cabañas">Todas las cabañas</option>
+        </select>
+        <label for="te-desde">Primera noche</label>
+        <input type="date" id="te-desde" required>
+        <label for="te-hasta">Última noche</label>
+        <input type="date" id="te-hasta" required>
+
+        <div id="te-temporada">
+          <label for="te-base">Precio base por noche (₡)</label>
+          <input type="number" id="te-base" min="0" step="500">
+          <label for="te-incluidas">Personas incluidas en el precio base</label>
+          <input type="number" id="te-incluidas" min="1" max="20">
+          <label for="te-extra">Cargo por cada persona extra (₡)</label>
+          <input type="number" id="te-extra" min="0" step="500">
+        </div>
+
+        <div id="te-promocion" hidden>
+          <label for="te-descuento-tipo">Tipo de descuento</label>
+          <select id="te-descuento-tipo">
+            <option value="porcentaje">Porcentaje (%)</option>
+            <option value="monto">Monto por noche (₡)</option>
+          </select>
+          <label for="te-valor">Valor del descuento</label>
+          <input type="number" id="te-valor" min="0" step="any">
+        </div>
+
+        <p class="error-texto" id="te-mensaje"></p>
+        <button type="submit" class="btn">Guardar temporada o promoción</button>
+      </form>
+      <div id="te-lista"></div>
+
       <h2>Usuarios de limpieza</h2>
       <p class="ayuda">Cree una cuenta para el personal de limpieza. Después puede enviarle un correo para cambiar la contraseña, o desactivar la cuenta.</p>
       <form id="form-staff" class="formulario">
@@ -937,12 +982,84 @@
     };
     const TARIFAS = JSON.parse(JSON.stringify(TARIFAS_BASE));
 
-    function precioNoche(cabana, personas) {
-      const t = TARIFAS[cabana] || TARIFAS_BASE[cabana];
-      return t.base + Math.max(0, personas - t.incluidas) * t.extra;
+    /* =========================================================
+       TEMPORADAS Y PROMOCIONES (colección "tarifas")
+       Temporada: cambia el precio base de un rango de noches.
+       Promoción: descuenta un porcentaje o un monto por noche.
+       Las fechas son la primera y la última noche, incluidas.
+       Igual que en la página pública: primero la temporada y después la promoción.
+       ========================================================= */
+    let TARIFAS_ESPECIALES = [];
+
+    async function cargarTarifasEspeciales() {
+      try {
+        const snap = await getDocs(collection(db, "tarifas"));
+        TARIFAS_ESPECIALES = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      } catch (error) {
+        console.warn("No se pudieron cargar temporadas y promociones:", error);
+      }
+    }
+
+    function aplicaRegla(regla, cabana, fecha) {
+      return (regla.cabana === "Todas las cabañas" || regla.cabana === cabana) &&
+        regla.desde <= fecha && fecha <= regla.hasta;
+    }
+
+    function tarifaDeNoche(cabana, personas, fecha) {
+      const base = TARIFAS[cabana] || TARIFAS_BASE[cabana];
+      const temporada = TARIFAS_ESPECIALES.find(function (r) {
+        return r.tipo === "temporada" && aplicaRegla(r, cabana, fecha);
+      });
+      const t = temporada
+        ? { base: Number(temporada.base), incluidas: Number(temporada.incluidas), extra: Number(temporada.extra) }
+        : base;
+      const original = t.base + Math.max(0, personas - t.incluidas) * t.extra;
+
+      const promo = TARIFAS_ESPECIALES.find(function (r) {
+        return r.tipo === "promocion" && aplicaRegla(r, cabana, fecha);
+      });
+      let descuento = 0;
+      if (promo) {
+        descuento = promo.descuentoTipo === "porcentaje"
+          ? Math.round(original * Number(promo.valor) / 100)
+          : Math.min(Number(promo.valor), original);
+      }
+
+      return {
+        original: original,
+        descuento: descuento,
+        final: original - descuento,
+        temporada: temporada ? temporada.nombre : "",
+        promocion: promo ? promo.nombre : ""
+      };
+    }
+
+    function calcularReserva(cabana, personas, fechas) {
+      const r = { original: 0, descuento: 0, final: 0, temporada: "", promocion: "" };
+      fechas.forEach(function (fecha) {
+        const n = tarifaDeNoche(cabana, personas, fecha);
+        r.original += n.original;
+        r.descuento += n.descuento;
+        r.final += n.final;
+        if (!r.temporada && n.temporada) r.temporada = n.temporada;
+        if (!r.promocion && n.promocion) r.promocion = n.promocion;
+      });
+      return r;
+    }
+
+    function camposPrecio(cabana, personas, fechas) {
+      const r = calcularReserva(cabana, personas, fechas);
+      return {
+        precioTotal: r.final,
+        tarifaOriginal: r.original,
+        descuento: r.descuento,
+        temporada: r.temporada,
+        promocion: r.promocion
+      };
     }
 
     async function cargarTarifas() {
+      await cargarTarifasEspeciales();
       try {
         const snap = await getDoc(doc(db, "config", "cabanas"));
         if (!snap.exists() || !snap.data().tarifas) return;
@@ -960,9 +1077,6 @@
       }
     }
 
-    function calcularTotal(cabana, personas, noches) {
-      return precioNoche(cabana, personas) * noches;
-    }
     const ETIQUETAS_ESTADO = {
       nueva: "Nueva",
       confirmada: "Confirmada",
@@ -1482,6 +1596,7 @@
 
     function cargarConfiguracion() {
       mostrarTarifas();
+      cargarListaTemporadas();
       cargarStaff();
     }
 
@@ -1533,6 +1648,108 @@
       } catch (error) {
         console.error(error);
         mensaje.textContent = "No se pudieron guardar las tarifas. Revise que su cuenta esté autorizada.";
+        mensaje.classList.add("error-texto");
+      }
+    });
+
+    /* ---------- Temporadas y promociones: lista, alta y baja ---------- */
+    function mostrarCamposTarifaEspecial() {
+      const esTemporada = document.getElementById("te-tipo").value === "temporada";
+      document.getElementById("te-temporada").hidden = !esTemporada;
+      document.getElementById("te-promocion").hidden = esTemporada;
+    }
+
+    function cargarListaTemporadas() {
+      const lista = document.getElementById("te-lista");
+      if (!TARIFAS_ESPECIALES.length) {
+        lista.innerHTML = '<p class="vacio">Todavía no hay temporadas ni promociones.</p>';
+        return;
+      }
+      const ordenadas = TARIFAS_ESPECIALES.slice().sort(function (a, b) { return a.desde < b.desde ? -1 : 1; });
+      lista.innerHTML = ordenadas.map(function (r) {
+        const detalle = r.tipo === "temporada"
+          ? "Temporada: base " + fmtColones(r.base) + " para " + r.incluidas + " personas, más " + fmtColones(r.extra) + " por persona extra"
+          : "Promoción: " + (r.descuentoTipo === "porcentaje" ? r.valor + " %" : fmtColones(r.valor) + " por noche") + " de descuento";
+        return '<article class="tarjeta">' +
+          '<span class="cab">' + esc(r.cabana) + "</span>" +
+          "<p><strong>" + esc(r.nombre) + "</strong><br>" + esc(r.desde) + " al " + esc(r.hasta) + "<br>" + esc(detalle) + "</p>" +
+          '<button type="button" class="btn btn-mini peligro" data-borrar-tarifa="' + esc(r.id) + '">Borrar</button>' +
+          "</article>";
+      }).join("");
+    }
+
+    async function borrarTarifaEspecial(id) {
+      if (!confirm("¿Borrar esta temporada o promoción? Las reservas ya guardadas conservan su precio.")) return;
+      try {
+        await deleteDoc(doc(db, "tarifas", id));
+        await cargarTarifasEspeciales();
+        cargarListaTemporadas();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo borrar. Intente de nuevo.");
+      }
+    }
+
+    document.getElementById("te-tipo").addEventListener("change", mostrarCamposTarifaEspecial);
+
+    document.getElementById("te-lista").addEventListener("click", function (e) {
+      const boton = e.target.closest("button[data-borrar-tarifa]");
+      if (boton) borrarTarifaEspecial(boton.dataset.borrarTarifa);
+    });
+
+    document.getElementById("form-tarifa-especial").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const mensaje = document.getElementById("te-mensaje");
+      const tipo = document.getElementById("te-tipo").value;
+      const nombre = document.getElementById("te-nombre").value.trim();
+      const desde = document.getElementById("te-desde").value;
+      const hasta = document.getElementById("te-hasta").value;
+
+      const regla = {
+        tipo: tipo,
+        nombre: nombre,
+        cabana: document.getElementById("te-cabana").value,
+        desde: desde,
+        hasta: hasta,
+        creadoEn: serverTimestamp()
+      };
+
+      if (!nombre || !desde || !hasta || desde > hasta) {
+        mensaje.textContent = "Revise el nombre y las fechas: la primera noche no puede ser después de la última.";
+        mensaje.classList.add("error-texto");
+        return;
+      }
+
+      if (tipo === "temporada") {
+        regla.base = Number(document.getElementById("te-base").value);
+        regla.incluidas = Number(document.getElementById("te-incluidas").value);
+        regla.extra = Number(document.getElementById("te-extra").value);
+        if (!(regla.base >= 0) || !(regla.incluidas >= 1) || !(regla.extra >= 0)) {
+          mensaje.textContent = "Revise el precio base, las personas incluidas y el cargo extra.";
+          mensaje.classList.add("error-texto");
+          return;
+        }
+      } else {
+        regla.descuentoTipo = document.getElementById("te-descuento-tipo").value;
+        regla.valor = Number(document.getElementById("te-valor").value);
+        if (!(regla.valor > 0) || (regla.descuentoTipo === "porcentaje" && regla.valor > 100)) {
+          mensaje.textContent = "Revise el descuento. El porcentaje debe estar entre 1 y 100.";
+          mensaje.classList.add("error-texto");
+          return;
+        }
+      }
+
+      try {
+        await addDoc(collection(db, "tarifas"), regla);
+        e.target.reset();
+        mostrarCamposTarifaEspecial();
+        mensaje.textContent = "Guardado.";
+        mensaje.classList.remove("error-texto");
+        await cargarTarifasEspeciales();
+        cargarListaTemporadas();
+      } catch (error) {
+        console.error(error);
+        mensaje.textContent = "No se pudo guardar. Revise que su cuenta esté autorizada.";
         mensaje.classList.add("error-texto");
       }
     });
@@ -2344,7 +2561,7 @@
 
       const bloques = calBloqueos.filter(function (b) { return b.cabana === calCabana && b.fecha === calDia; });
       if (!bloques.length) {
-        caja.innerHTML = "<h3>" + esc(formatoLargo(calDia)) + "</h3><p>Libre en " + esc(calCabana) + ".</p>";
+        caja.innerHTML = "<h3>" + esc(formatoLargo(calDia)) + "</h3><p>Libre en " + esc(calCabana) + ".</p>" + botonNuevoCal();
         return;
       }
 
@@ -2388,8 +2605,30 @@
           "</div>";
       });
 
-      caja.innerHTML = html;
+      caja.innerHTML = html + botonNuevoCal();
     }
+
+    // Botón para bloquear o reservar desde el día seleccionado
+    function botonNuevoCal() {
+      return '<div class="bloque"><button type="button" class="btn-nueva" data-cal-nuevo="1">+ Bloquear o reservar desde este día</button></div>';
+    }
+
+    function abrirFormularioDesdeCalendario() {
+      if (!calDia) return;
+      const fechaSalida = fechaTextoCal(new Date(new Date(calDia + "T12:00:00").getTime() + 24 * 60 * 60 * 1000));
+      irAPestana("reservas");
+      abrirFormulario(null);
+      fTipo.value = "bloqueada";
+      fCabana.value = calCabana;
+      fEntrada.value = calDia;
+      fSalida.value = fechaSalida;
+      fNombre.value = "";
+      fNombre.focus();
+    }
+
+    document.getElementById("cal-detalle").addEventListener("click", function (e) {
+      if (e.target.closest("[data-cal-nuevo]")) abrirFormularioDesdeCalendario();
+    });
 
     document.getElementById("cal-grid").addEventListener("click", function (e) {
       const boton = e.target.closest("[data-fecha]");
@@ -2715,7 +2954,10 @@
       const r = resumenPago(s);
       const resumen = Number(s.precioTotal) > 0
         ? '<p class="resumen-pago">Total ' + fmtColones(r.total) + " · Pagado " + fmtColones(r.pagado) +
-          " · Saldo " + fmtColones(r.saldo) + " · " + r.estado + "</p>"
+          " · Saldo " + fmtColones(r.saldo) + " · " + r.estado + "</p>" +
+          (s.promocion
+            ? '<p class="resumen-pago">Promoción: ' + esc(s.promocion) + " · descuento " + fmtColones(Number(s.descuento) || 0) + "</p>"
+            : "")
         : "";
 
       return '<article class="tarjeta">' +
@@ -2855,7 +3097,7 @@
     async function guardarReserva(datos, accion) {
       const noches = listaNoches(datos.entrada, datos.salida);
       // El total se calcula con las tarifas al guardar
-      datos.precioTotal = calcularTotal(datos.cabana, Number(datos.personas), noches.length);
+      Object.assign(datos, camposPrecio(datos.cabana, Number(datos.personas), noches));
       const sRef = datos.id ? doc(db, "solicitudes", datos.id) : doc(collection(db, "solicitudes"));
       const solicitudId = sRef.id;
 
@@ -2905,6 +3147,10 @@
 
         const campos = {
           precioTotal: datos.precioTotal,
+          tarifaOriginal: datos.tarifaOriginal,
+          descuento: datos.descuento,
+          temporada: datos.temporada,
+          promocion: datos.promocion,
           cabana: datos.cabana,
           entrada: datos.entrada,
           salida: datos.salida,
@@ -2944,7 +3190,7 @@
         correo: s.correo || "",
         notas: s.notas || "",
         canal: s.canal || "web",
-        precioTotal: calcularTotal(s.cabana, Number(s.personas), listaNoches(s.entrada, s.salida).length),
+        ...camposPrecio(s.cabana, Number(s.personas), listaNoches(s.entrada, s.salida)),
         estado: estado
       };
     }
