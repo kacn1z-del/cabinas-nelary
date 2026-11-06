@@ -1863,7 +1863,7 @@
       cabanaEditandoId = c ? c.id : null;
       document.getElementById("cabana-editor-titulo").textContent = c ? "Editar " + c.nombre : "Nueva cabaña";
       document.getElementById("cab-nombre").value = c ? c.nombre : "";
-      document.getElementById("cab-nombre").disabled = !!c;
+      document.getElementById("cab-nombre").disabled = false;
       document.getElementById("cab-desc").value = c ? (c.descripcion || "") : "";
       document.getElementById("cab-desc-en").value = c ? (c.descripcionEn || "") : "";
       document.getElementById("cab-servicios").value = c ? (c.servicios || []).join("\n") : "";
@@ -1925,6 +1925,18 @@
       boton.disabled = true;
       try {
         if (cabanaEditandoId) {
+          const anterior = CABANAS.find(function (x) { return x.id === cabanaEditandoId; });
+          if (!nombre) return error("Escriba el nombre de la cabaña.");
+          if (nombre !== anterior.nombre) {
+            if (CABANAS.some(function (c) { return c.id !== cabanaEditandoId && c.nombre.toLowerCase() === nombre.toLowerCase(); })) {
+              return error("Ya existe otra cabaña con ese nombre.");
+            }
+            if (!confirm("¿Cambiar el nombre de " + anterior.nombre + " a " + nombre + "? Se actualizan sus reservas, bloqueos, bitácora, inventario y tarifas.")) {
+              return;
+            }
+            await renombrarCabana(anterior.nombre, nombre);
+            datos.nombre = nombre;
+          }
           await updateDoc(doc(db, "cabanas", cabanaEditandoId), datos);
           await cargarCabanas();
           abrirEditorCabana(cabanaEditandoId);
@@ -2094,6 +2106,8 @@
       caja.innerHTML = FOTOS_CABANA.map(function (f, i) {
         return '<div class="foto-admin">' +
           '<img src="' + esc(f.url) + '" alt="" loading="lazy">' +
+          '<input type="text" class="foto-texto" value="' + esc(f.descripcion || "") + '" placeholder="Texto de la foto (lo leen los lectores de pantalla)" data-foto-desc="' + esc(f.id) + '">' +
+          '<button type="button" class="btn btn-mini" data-foto-accion="guardar-desc" data-id="' + esc(f.id) + '">Guardar texto</button>' +
           '<div class="foto-acciones">' +
           '<button type="button" class="btn btn-mini" data-foto-accion="subir" data-id="' + esc(f.id) + '"' + (i === 0 ? " disabled" : "") + ">↑</button>" +
           '<button type="button" class="btn btn-mini" data-foto-accion="bajar" data-id="' + esc(f.id) + '"' +
@@ -2119,6 +2133,49 @@
       } catch (error) {
         console.error(error);
         alert("No se pudo cambiar el orden. Intente de nuevo.");
+      }
+    }
+
+    // Cambia el nombre de una cabaña en todo lo que lo usa (reservas, bloqueos, bitácora, inventario, tarifas)
+    async function renombrarCabana(viejo, nuevo) {
+      const cambios = [];
+      const porCabana = ["solicitudes", "bitacora", "inventario", "tarifas"];
+      for (const nombreColeccion of porCabana) {
+        const snap = await getDocs(query(collection(db, nombreColeccion), where("cabana", "==", viejo)));
+        snap.forEach(function (d) {
+          cambios.push({ tipo: "update", ref: d.ref, datos: { cabana: nuevo } });
+        });
+      }
+      const bloqueos = await getDocs(query(collection(db, "bloqueos"), where("cabana", "==", viejo)));
+      bloqueos.forEach(function (d) {
+        const b = d.data();
+        const nuevoId = typeof b.fecha === "string" ? claveBloqueo(nuevo, b.fecha) : d.id;
+        cambios.push({ tipo: "set", ref: doc(db, "bloqueos", nuevoId), datos: Object.assign({}, b, { cabana: nuevo }) });
+        if (nuevoId !== d.id) cambios.push({ tipo: "delete", ref: d.ref });
+      });
+
+      for (let i = 0; i < cambios.length; i += 400) {
+        const lote = writeBatch(db);
+        cambios.slice(i, i + 400).forEach(function (c) {
+          if (c.tipo === "update") lote.update(c.ref, c.datos);
+          else if (c.tipo === "set") lote.set(c.ref, c.datos);
+          else lote.delete(c.ref);
+        });
+        await lote.commit();
+      }
+      if (calCabana === viejo) calCabana = nuevo;
+    }
+
+    async function guardarDescripcionFoto(id, texto) {
+      const progreso = document.getElementById("cab-fotos-progreso");
+      try {
+        await updateDoc(doc(db, "galeria", id), { descripcion: texto });
+        const foto = FOTOS_CABANA.find(function (f) { return f.id === id; });
+        if (foto) foto.descripcion = texto;
+        progreso.textContent = "Texto de la foto guardado.";
+      } catch (error) {
+        console.error(error);
+        progreso.textContent = "No se pudo guardar el texto de la foto.";
       }
     }
 
@@ -2186,6 +2243,10 @@
       if (boton.dataset.fotoAccion === "subir") moverFoto(id, -1);
       if (boton.dataset.fotoAccion === "bajar") moverFoto(id, 1);
       if (boton.dataset.fotoAccion === "borrar") borrarFoto(id);
+      if (boton.dataset.fotoAccion === "guardar-desc") {
+        const campo = document.querySelector('input[data-foto-desc="' + id + '"]');
+        if (campo) guardarDescripcionFoto(id, campo.value.trim());
+      }
     });
 
     document.getElementById("cab-fotos-lista").addEventListener("change", function (e) {
