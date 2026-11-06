@@ -471,6 +471,33 @@
 
     .galeria button:hover img { transform: scale(1.06); filter: brightness(0.93); }
 
+    /* Mini galería dentro de cada cabaña */
+    [hidden] { display: none !important; }
+    .mini-galeria {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 50px 0 0;
+    }
+    .mini-galeria button {
+      border: none;
+      padding: 0;
+      background: var(--crema-oscuro);
+      cursor: zoom-in;
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+    }
+    .mini-galeria img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 1s var(--ease);
+    }
+    .mini-galeria button:hover img { transform: scale(1.05); }
+    @media (max-width: 640px) {
+      .mini-galeria { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    }
+
     /* ---------- VISOR ---------- */
     .visor {
       position: fixed;
@@ -1159,7 +1186,7 @@
       </a>
       <nav class="nav-links">
         <a href="#cabanas" data-i18n="navCabanas">Cabañas</a>
-        <a href="#galeria" data-i18n="navGaleria">Galería</a>
+        <a href="#galeria" id="nav-galeria" data-i18n="navGaleria">Galería</a>
         <a href="#experiencias" data-i18n="navExperiencias">Experiencias</a>
         <a href="#contacto" data-i18n="navContacto">Contacto</a>
         <button type="button" class="idioma" id="btn-idioma" aria-label="View in English">EN</button>
@@ -1221,6 +1248,8 @@
         </div>
       </div>
 
+      <div class="mini-galeria" data-cabana="grande" hidden></div>
+
       <!-- Cabina pequeña -->
       <div class="cabana invertida">
         <div class="cabana-foto reveal">
@@ -1244,6 +1273,8 @@
           </div>
         </div>
       </div>
+
+      <div class="mini-galeria" data-cabana="pequena" hidden></div>
     </div>
   </section>
 
@@ -2449,7 +2480,14 @@
       { src: "cabina-habitacion.jpg", alt: "Cabina pequeña: habitación con cama doble y madera", clase: "alta" },
       { src: "cabina-bano.jpg", alt: "Cabina pequeña: baño con ducha de vidrio", clase: "" },
       { src: "cabina-cocina.jpg", alt: "Cabina pequeña: cocina equipada", clase: "ancha" },
-      { src: "cabina-tina.jpg", alt: "Cabina pequeña: tina de baño junto a la ventana", clase: "" }
+      { src: "cabina-tina.jpg", alt: "Cabina pequeña: tina de baño junto a la ventana", clase: "" },
+      { src: "pequena-exterior.jpg", alt: "Exterior de la Cabina Pequeña de noche, con ventanal y madera", clase: "alta" },
+      { src: "pequena-altillo.jpg", alt: "Cabina pequeña: altillo con cama doble, ventanal y tina", clase: "ancha" },
+      { src: "pequena-tina.jpg", alt: "Cabina pequeña: tina de pie junto a la ventana", clase: "" },
+      { src: "pequena-bano.jpg", alt: "Cabina pequeña: baño con ducha de azulejo verde", clase: "" },
+      { src: "pequena-cocina.jpg", alt: "Cabina pequeña: cocina con barra y taburetes", clase: "" },
+      { src: "pequena-sala.jpg", alt: "Cabina pequeña: sala con sofá y escalera", clase: "alta" },
+      { src: "colibri.jpg", alt: "Colibrí entre las ramas del bosque", clase: "" }
     ];
 
     const grid = document.getElementById("grid-galeria");
@@ -2466,21 +2504,36 @@
         : url;
     }
 
+    // Cada foto pertenece a una cabaña: "grande", "pequena" o "general" (solo en la galería general)
+    function cabanaDeArchivo(src) {
+      if (/^(cabina|pequena)/.test(src)) return "pequena";
+      if (src === "colibri.jpg") return "general";
+      return "grande";
+    }
+
+    function fotosRespaldo() {
+      return FOTOS_RESPALDO.map(function (f) {
+        return Object.assign({ cabana: cabanaDeArchivo(f.src) }, f);
+      });
+    }
+
     async function cargarGaleria() {
       try {
         const snap = await getDocs(query(collection(db, "galeria"), orderBy("orden")));
-        if (snap.empty) return FOTOS_RESPALDO;
+        if (snap.empty) return fotosRespaldo();
         return snap.docs.map(function (d) {
           const f = d.data();
           return {
             src: versionOptimizada(f.url),
             alt: f.descripcion || "Fotografía del refugio",
-            clase: f.clase || ""
+            clase: f.clase || "",
+            // Las fotos sin cabaña asignada se tratan como de la Cabaña Grande
+            cabana: f.cabana || "grande"
           };
         });
       } catch (error) {
         console.warn("Se muestran las fotos por defecto:", error);
-        return FOTOS_RESPALDO;
+        return fotosRespaldo();
       }
     }
 
@@ -2500,8 +2553,32 @@
         img.loading = "lazy";
 
         boton.appendChild(img);
-        boton.addEventListener("click", function () { abrirVisor(i); });
+        boton.addEventListener("click", function () { abrirVisor(lista, i); });
         grid.appendChild(boton);
+      });
+    }
+
+    // Mini galerías: cada cabaña muestra solo sus fotos
+    function pintarMiniGalerias(lista) {
+      document.querySelectorAll(".mini-galeria").forEach(function (caja) {
+        const cabana = caja.dataset.cabana;
+        const deCabana = lista.filter(function (f) { return f.cabana === cabana; });
+        caja.textContent = "";
+        caja.hidden = !deCabana.length;
+        deCabana.forEach(function (foto, i) {
+          const boton = document.createElement("button");
+          boton.type = "button";
+          boton.setAttribute("aria-label", t("verFoto") + foto.alt);
+
+          const img = document.createElement("img");
+          img.src = foto.src;
+          img.alt = foto.alt;
+          img.loading = "lazy";
+
+          boton.appendChild(img);
+          boton.addEventListener("click", function () { abrirVisor(deCabana, i); });
+          caja.appendChild(boton);
+        });
       });
     }
 
@@ -2513,7 +2590,8 @@
       contador.textContent = (indiceActual + 1) + " / " + fotos.length;
     }
 
-    function abrirVisor(i) {
+    function abrirVisor(lista, i) {
+      fotos = lista;
       mostrarFoto(i);
       visor.classList.add("abierto");
       document.body.style.overflow = "hidden";
@@ -2578,7 +2656,15 @@
     cargarTextos();
     cargarTarifas();
     cargarDisponibilidad();
-    cargarGaleria().then(pintarGaleria);
+    cargarGaleria().then(function (lista) {
+      // La galería general solo muestra fotos generales; las de cada cabaña salen en su sección
+      const generales = lista.filter(function (f) { return f.cabana === "general"; });
+      const hayGenerales = generales.length > 0;
+      document.getElementById("galeria").hidden = !hayGenerales;
+      document.getElementById("nav-galeria").hidden = !hayGenerales;
+      pintarGaleria(generales);
+      pintarMiniGalerias(lista);
+    });
   </script>
 
 </body>
