@@ -1614,13 +1614,87 @@
        Cabina Pequeña: ₡45 000 por 2 personas; ₡5 000 extra por persona (hasta 4).
        Cabaña Grande: ₡55 000 por 2 a 6 personas; ₡5 000 extra por persona (hasta 8).
        ========================================================= */
-    function precioNoche(cabana, personas) {
-      const t = TARIFAS[cabana] || TARIFAS_BASE[cabana];
-      return t.base + Math.max(0, personas - t.incluidas) * t.extra;
+    /* =========================================================
+       TEMPORADAS Y PROMOCIONES (colección "tarifas")
+       Temporada: cambia el precio base de un rango de noches.
+       Promoción: descuenta un porcentaje o un monto por noche.
+       Las fechas son la primera y la última noche, incluidas.
+       ========================================================= */
+    let TARIFAS_ESPECIALES = [];
+
+    async function cargarTarifasEspeciales() {
+      try {
+        const snap = await getDocs(collection(db, "tarifas"));
+        TARIFAS_ESPECIALES = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      } catch (error) {
+        console.warn("No se pudieron cargar temporadas y promociones:", error);
+      }
+    }
+
+    function aplicaRegla(regla, cabana, fecha) {
+      return (regla.cabana === "Todas las cabañas" || regla.cabana === cabana) &&
+        regla.desde <= fecha && fecha <= regla.hasta;
+    }
+
+    // Precio de una noche: primero la temporada (si hay) y después la promoción (si hay)
+    function tarifaDeNoche(cabana, personas, fecha) {
+      const base = TARIFAS[cabana] || TARIFAS_BASE[cabana];
+      const temporada = TARIFAS_ESPECIALES.find(function (r) {
+        return r.tipo === "temporada" && aplicaRegla(r, cabana, fecha);
+      });
+      const t = temporada
+        ? { base: Number(temporada.base), incluidas: Number(temporada.incluidas), extra: Number(temporada.extra) }
+        : base;
+      const original = t.base + Math.max(0, personas - t.incluidas) * t.extra;
+
+      const promo = TARIFAS_ESPECIALES.find(function (r) {
+        return r.tipo === "promocion" && aplicaRegla(r, cabana, fecha);
+      });
+      let descuento = 0;
+      if (promo) {
+        descuento = promo.descuentoTipo === "porcentaje"
+          ? Math.round(original * Number(promo.valor) / 100)
+          : Math.min(Number(promo.valor), original);
+      }
+
+      return {
+        original: original,
+        descuento: descuento,
+        final: original - descuento,
+        temporada: temporada ? temporada.nombre : "",
+        promocion: promo ? promo.nombre : ""
+      };
+    }
+
+    // Suma todas las noches de la reserva
+    function calcularReserva(cabana, personas, fechas) {
+      const r = { original: 0, descuento: 0, final: 0, temporada: "", promocion: "" };
+      fechas.forEach(function (fecha) {
+        const n = tarifaDeNoche(cabana, personas, fecha);
+        r.original += n.original;
+        r.descuento += n.descuento;
+        r.final += n.final;
+        if (!r.temporada && n.temporada) r.temporada = n.temporada;
+        if (!r.promocion && n.promocion) r.promocion = n.promocion;
+      });
+      return r;
+    }
+
+    // Campos de precio que se guardan en cada reserva
+    function camposPrecio(cabana, personas, fechas) {
+      const r = calcularReserva(cabana, personas, fechas);
+      return {
+        precioTotal: r.final,
+        tarifaOriginal: r.original,
+        descuento: r.descuento,
+        temporada: r.temporada,
+        promocion: r.promocion
+      };
     }
 
     // Lee las tarifas guardadas en config/cabanas (si el panel las cambió)
     async function cargarTarifas() {
+      await cargarTarifasEspeciales();
       try {
         const snap = await getDoc(doc(db, "config", "cabanas"));
         if (!snap.exists() || !snap.data().tarifas) return;
@@ -1638,9 +1712,6 @@
       }
     }
 
-    function calcularTotal(cabana, personas, noches) {
-      return precioNoche(cabana, personas) * noches;
-    }
 
     function fmtColones(n) {
       return "₡" + Number(n).toLocaleString("es-CR");
@@ -2196,10 +2267,11 @@
       } else if (estadoDisponibilidad === "error") {
         calResumen.textContent = t("calError");
       } else if (entradaSel && salidaSel) {
-        const noches = Math.round((fechaDesdeTexto(salidaSel) - fechaDesdeTexto(entradaSel)) / 86400000);
-        const total = calcularTotal(cabana, Number(personasInput.value) || 2, noches);
-        calResumen.textContent = t("calResumen")(noches, formatoCorto(entradaSel), formatoCorto(salidaSel)) +
-          " · " + t("calPrecio")(fmtColones(total), fmtColones(Math.round(total * 0.5)));
+        const lista = listaNoches(entradaSel, salidaSel);
+        const r = calcularReserva(cabana, Number(personasInput.value) || 2, lista);
+        calResumen.textContent = t("calResumen")(lista.length, formatoCorto(entradaSel), formatoCorto(salidaSel)) +
+          " · " + t("calPrecio")(fmtColones(r.final), fmtColones(Math.round(r.final * 0.5))) +
+          (r.promocion ? " · " + r.promocion : "");
       } else if (entradaSel) {
         calResumen.textContent = t("calEntrada")(formatoCorto(entradaSel));
       } else {
@@ -2381,7 +2453,7 @@
         entrada: entradaSel,
         salida: salidaSel,
         personas: Number(personasInput.value),
-        precioTotal: calcularTotal(cabana, Number(personasInput.value), noches.length),
+        ...camposPrecio(cabana, Number(personasInput.value), noches),
         nombre: document.getElementById("nombre").value.trim(),
         telefono: document.getElementById("telefono").value.trim(),
         correo: document.getElementById("correo").value.trim(),
