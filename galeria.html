@@ -270,11 +270,19 @@
 
     <section class="grupo">
       <h2>Subir fotos</h2>
-      <p class="ayuda">Puede elegir varias a la vez. Las fotos se suben a Cloudinary y aparecen en la página principal en el orden de la lista de abajo.</p>
+      <p class="ayuda">Puede elegir varias a la vez. Cada foto aparece en la sección de la cabaña que elija, o en la galería general si elige "General". Las fotos se suben a Cloudinary y siguen el orden de la lista de abajo.</p>
       <form id="form-subir">
         <div>
           <label for="archivos">Fotos</label>
           <input type="file" id="archivos" accept="image/*" multiple required>
+        </div>
+        <div>
+          <label for="cabana-nueva">Cabaña</label>
+          <select id="cabana-nueva">
+            <option value="grande">Cabaña Grande</option>
+            <option value="pequena">Cabina Pequeña</option>
+            <option value="general">General (galería principal)</option>
+          </select>
         </div>
         <div class="fila">
           <div>
@@ -353,6 +361,12 @@
       ["alta", "Alta (2 filas)"]
     ];
 
+    const CABANAS = [
+      ["grande", "Cabaña Grande"],
+      ["pequena", "Cabina Pequeña"],
+      ["general", "General (galería principal)"]
+    ];
+
     /* =========================================================
        ELEMENTOS
        ========================================================= */
@@ -366,6 +380,7 @@
     const errorLogin = document.getElementById("error-login");
     const formSubir = document.getElementById("form-subir");
     const inputArchivos = document.getElementById("archivos");
+    const cabanaNueva = document.getElementById("cabana-nueva");
     const claseNueva = document.getElementById("clase-nueva");
     const descripcionNueva = document.getElementById("descripcion-nueva");
     const botonSubir = document.getElementById("boton-subir");
@@ -473,6 +488,20 @@
         const campos = document.createElement("div");
         campos.className = "foto-campos";
 
+        // Cabaña a la que pertenece la foto (las fotos sin valor se tratan como de la Grande)
+        const selCabana = document.createElement("select");
+        CABANAS.forEach(function (par) {
+          const op = document.createElement("option");
+          op.value = par[0];
+          op.textContent = par[1];
+          selCabana.appendChild(op);
+        });
+        selCabana.value = f.cabana || "grande";
+        selCabana.setAttribute("aria-label", "Cabaña de la foto");
+        selCabana.addEventListener("change", function () {
+          guardarCampo(f.id, { cabana: selCabana.value });
+        });
+
         const selTamano = document.createElement("select");
         TAMANOS.forEach(function (par) {
           const op = document.createElement("option");
@@ -506,7 +535,7 @@
         const btnQuitar = boton("Eliminar", function () { eliminar(f.id); }, true);
 
         acciones.append(btnArriba, btnAbajo, btnQuitar);
-        campos.append(selTamano, inputDesc, acciones);
+        campos.append(selCabana, selTamano, inputDesc, acciones);
         tarjeta.append(img, campos);
         lista.appendChild(tarjeta);
       });
@@ -623,6 +652,7 @@
             publicId: img.public_id,
             descripcion: descripcionNueva.value.trim() || "Fotografía del refugio",
             clase: claseNueva.value,
+            cabana: cabanaNueva.value,
             orden: siguiente,
             creadoEn: serverTimestamp()
           });
