@@ -279,9 +279,10 @@
     .salon-otro { background: #EFD6D6; border-color: #B06A60; color: var(--texto); }
     .salon-completada { background: #E6E6E6; border-color: #9A9A9A; color: var(--gris); }
     .salon-dia:not(.salon-libre) .salon-num { text-decoration: line-through; }
-    .cal-modal { width: min(92vw, 520px); max-height: 85vh; overflow: auto; padding: 0; border: 1px solid var(--crema-oscuro); border-radius: 12px; background: #fff; }
-    .cal-modal::backdrop { background: rgba(0, 0, 0, 0.4); }
-    .cal-modal .cal-detalle { border: 0; padding: 40px 18px 18px; }
+    .cal-modal-fondo { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .cal-modal-fondo[hidden] { display: none; }
+    .cal-modal-caja { position: relative; width: min(92vw, 520px); max-height: 85vh; overflow: auto; border: 1px solid var(--crema-oscuro); border-radius: 12px; background: #fff; }
+    .cal-modal-caja .cal-detalle { border: 0; padding: 40px 18px 18px; }
     .cal-cerrar { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 1.6rem; line-height: 1; cursor: pointer; color: var(--gris); }
 
 
@@ -958,10 +959,12 @@
         <span><i class="cal-color airbnb"></i>Airbnb</span>
         <span><i class="cal-color otro"></i>Otro bloqueo</span>
       </div>
-      <dialog id="cal-modal" class="cal-modal">
-        <button type="button" class="cal-cerrar" id="cal-cerrar" aria-label="Cerrar">×</button>
-        <div id="cal-detalle" class="cal-detalle"></div>
-      </dialog>
+      <div id="cal-modal" class="cal-modal-fondo" hidden>
+        <div class="cal-modal-caja">
+          <button type="button" class="cal-cerrar" id="cal-cerrar" aria-label="Cerrar">×</button>
+          <div id="cal-detalle" class="cal-detalle"></div>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -3179,14 +3182,17 @@
     });
 
     function abrirModalCal() {
-      const dlg = document.getElementById("cal-modal");
-      if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
+      document.getElementById("cal-modal").hidden = false;
     }
 
     function cerrarModalCal() {
-      const dlg = document.getElementById("cal-modal");
-      if (typeof dlg.close === "function") dlg.close(); else dlg.removeAttribute("open");
+      document.getElementById("cal-modal").hidden = true;
     }
+
+    // Tocar fuera de la ventana también la cierra
+    document.getElementById("cal-modal").addEventListener("click", function (e) {
+      if (e.target.id === "cal-modal") cerrarModalCal();
+    });
 
     document.getElementById("cal-cerrar").addEventListener("click", cerrarModalCal);
 
@@ -3639,12 +3645,26 @@
       }
     }
 
+    function asegurarOpcion(select, valor) {
+      if (!valor) return;
+      const existe = Array.from(select.options).some(function (o) { return o.value === valor; });
+      if (existe) return;
+      const opcion = document.createElement("option");
+      opcion.value = valor;
+      opcion.textContent = valor + " (actual)";
+      select.appendChild(opcion);
+    }
+
     function abrirFormulario(s) {
       errorForm.textContent = "";
       comprobanteNuevo = null;
       cedulasNuevas = null;
       if (s) {
         formTitulo.textContent = "Editar reserva";
+        // Una reserva antigua puede tener una cabaña, tipo o canal que ya no está en la lista: se agrega para poder editarla
+        asegurarOpcion(fCabana, s.cabana);
+        asegurarOpcion(fTipo, s.estado);
+        asegurarOpcion(fCanal, s.canal || "web");
         fId.value = s.id;
         fTipo.value = s.estado;
         fCanal.value = s.canal || "web";
@@ -3688,8 +3708,8 @@
       if (!cabana) { mostrarError("Elija una cabaña."); return null; }
       if (!entrada || !salida) { mostrarError("Indique la entrada y la salida."); return null; }
       if (salida <= entrada) { mostrarError("La salida debe ser posterior a la entrada."); return null; }
-      if (!personas || personas < 1 || personas > MAX_PERSONAS[cabana]) {
-        mostrarError("La cantidad de personas no es válida para esa cabaña (máximo " + MAX_PERSONAS[cabana] + ").");
+      if (!personas || personas < 1 || personas > (MAX_PERSONAS[cabana] || 8)) {
+        mostrarError("La cantidad de personas no es válida para esa cabaña (máximo " + (MAX_PERSONAS[cabana] || 8) + ").");
         return null;
       }
       if (!nombre) { mostrarError("Escriba un nombre."); return null; }
