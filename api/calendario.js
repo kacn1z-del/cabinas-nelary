@@ -113,20 +113,19 @@ function construirIcs(nombreCabana, bloques) {
 
 // Nombre de una cabaña: primero las dos originales y después la colección "cabanas" (lectura pública)
 async function nombreDeCabana(clave) {
-  if (CABANAS[clave]) return CABANAS[clave];
   if (!/^[a-z0-9-]{1,60}$/.test(clave)) return null;
 
   const url = "https://firestore.googleapis.com/v1/projects/" + PROYECTO +
     "/databases/(default)/documents/cabanas/" + clave;
 
   const respuesta = await fetch(url);
-  if (respuesta.status === 404) return null;
+  if (respuesta.status === 404) return CABANAS[clave] || null;
   if (!respuesta.ok) throw new Error("Firestore respondió " + respuesta.status);
 
   const documento = await respuesta.json();
   const campos = documento.fields || {};
   if (campos.activa && campos.activa.booleanValue === false) return null;
-  return (campos.nombre && campos.nombre.stringValue) || null;
+  return (campos.nombre && campos.nombre.stringValue) || CABANAS[clave] || null;
 }
 
 export default async function handler(req, res) {
