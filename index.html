@@ -252,11 +252,26 @@
       overflow: hidden;
     }
 
+    /* Foto de portada. Para moverla o acercarla, cambie estos valores:
+       --portada-x e --portada-y: posición horizontal y vertical (0% = izquierda/arriba, 100% = derecha/abajo)
+       --portada-tamano: "cover" llena la pantalla; un porcentaje como "120%" la acerca */
     .hero-fondo {
       position: absolute;
       inset: -4%;
-      background: url("portada-nelary.jpg") center / cover no-repeat;
+      background-image: url("portada-nelary.jpg");
+      background-repeat: no-repeat;
+      background-size: var(--portada-tamano, cover);
+      background-position: var(--portada-x, 50%) var(--portada-y, 50%);
       animation: zoom 24s ease-in-out infinite alternate;
+    }
+
+    /* Ajustes solo para celular */
+    @media (max-width: 700px) {
+      .hero-fondo {
+        --portada-tamano: cover;
+        --portada-x: 50%;
+        --portada-y: 50%;
+      }
     }
 
     .hero-fondo::after {
