@@ -278,6 +278,11 @@
     .salon-airbnb { background: #DFE9F5; border-color: #5B7DB1; color: #2B4A74; }
     .salon-otro { background: #EFD6D6; border-color: #B06A60; color: var(--texto); }
     .salon-completada { background: #E6E6E6; border-color: #9A9A9A; color: var(--gris); }
+    .salon-dia:not(.salon-libre) .salon-num { text-decoration: line-through; }
+    .cal-modal { width: min(92vw, 520px); max-height: 85vh; overflow: auto; padding: 0; border: 1px solid var(--crema-oscuro); border-radius: 12px; background: #fff; }
+    .cal-modal::backdrop { background: rgba(0, 0, 0, 0.4); }
+    .cal-modal .cal-detalle { border: 0; padding: 40px 18px 18px; }
+    .cal-cerrar { position: absolute; top: 8px; right: 10px; border: 0; background: none; font-size: 1.6rem; line-height: 1; cursor: pointer; color: var(--gris); }
 
 
     .tabs {
@@ -944,7 +949,10 @@
         <span><i class="cal-color airbnb"></i>Airbnb</span>
         <span><i class="cal-color otro"></i>Otro bloqueo</span>
       </div>
-      <div id="cal-detalle" class="cal-detalle"></div>
+      <dialog id="cal-modal" class="cal-modal">
+        <button type="button" class="cal-cerrar" id="cal-cerrar" aria-label="Cerrar">×</button>
+        <div id="cal-detalle" class="cal-detalle"></div>
+      </dialog>
     </section>
   </main>
 
@@ -2026,7 +2034,7 @@
           id: "grande", nombre: "Cabaña Grande", orden: 0,
           descripcion: "Espacio amplio para hasta 8 personas, con sala de sillones, cocina equipada, dos baños completos y jacuzzi recién instalado.",
           descripcionEn: "Spacious cabin for up to 8 guests, with a lounge with sofas, equipped kitchen, two full bathrooms and a newly installed jacuzzi.",
-          servicios: ["Hasta 8 huéspedes", "2 baños completos", "Cocina equipada", "Jacuzzi", "Fogón al aire libre", "Vista a la montaña"],
+          servicios: ["Hasta 8 huéspedes", "2 baños completos", "Cocina equipada", "Jacuzzi", "Fogata al aire libre", "Vista a la montaña"],
           serviciosEn: ["Up to 8 guests", "2 full bathrooms", "Equipped kitchen", "Jacuzzi", "Outdoor fire pit", "Mountain view"],
           base: Number(tarifas.grande.base), incluidas: Number(tarifas.grande.incluidas), extra: Number(tarifas.grande.extra), max: Number(tarifas.grande.max)
         },
@@ -3061,7 +3069,6 @@
           (texto === calDia ? " sel" : "") + (texto === hoyTexto ? " hoy" : "") +
           '" data-fecha="' + texto + '">' +
           '<span class="salon-num">' + dia + "</span>" +
-          '<span class="salon-sem">' + CAL_DIAS_CORTOS[(fecha.getDay() + 6) % 7] + "</span>" +
           (etiqueta ? "<small>" + esc(etiqueta) + "</small>" : "") +
           "</button>";
       }
@@ -3132,6 +3139,7 @@
 
     function abrirFormularioDesdeCalendario() {
       if (!calDia) return;
+      cerrarModalCal();
       const fechaSalida = fechaTextoCal(new Date(new Date(calDia + "T12:00:00").getTime() + 24 * 60 * 60 * 1000));
       irAPestana("reservas");
       abrirFormulario(null);
@@ -3152,7 +3160,20 @@
       if (!boton) return;
       calDia = boton.dataset.fecha;
       renderCalendario();
+      abrirModalCal();
     });
+
+    function abrirModalCal() {
+      const dlg = document.getElementById("cal-modal");
+      if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
+    }
+
+    function cerrarModalCal() {
+      const dlg = document.getElementById("cal-modal");
+      if (typeof dlg.close === "function") dlg.close(); else dlg.removeAttribute("open");
+    }
+
+    document.getElementById("cal-cerrar").addEventListener("click", cerrarModalCal);
 
     document.getElementById("cal-ant").addEventListener("click", function () {
       calMes = new Date(calMes.getFullYear(), calMes.getMonth() - 1, 1);
