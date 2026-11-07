@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin.html
+Disallow: /galeria.html
+Disallow: /limpieza.html
+Disallow: /api/
+
+Sitemap: https://refugionelary.com/sitemap.xml
