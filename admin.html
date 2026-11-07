@@ -1853,15 +1853,27 @@
         .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     }
 
+    // Si todavía no hay cabañas guardadas, los formularios usan estas dos (se guardan al pulsar "Crear cabañas iniciales")
+    const CABANAS_RESPALDO_ADMIN = [
+      { id: "grande", nombre: "Cabaña Grande", orden: 0, activa: true, base: 55000, incluidas: 6, extra: 5000, max: 8 },
+      { id: "pequena", nombre: "Cabina Pequeña", orden: 1, activa: true, base: 45000, incluidas: 2, extra: 5000, max: 4 }
+    ];
+
+    function cabanasParaFormularios() {
+      return CABANAS.length ? CABANAS : CABANAS_RESPALDO_ADMIN;
+    }
+
     async function cargarCabanas() {
       try {
-        const snap = await getDocs(query(collection(db, "cabanas"), orderBy("orden")));
-        CABANAS = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        const snap = await getDocs(collection(db, "cabanas"));
+        CABANAS = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
+          .sort(function (x, y) { return (Number(x.orden) || 0) - (Number(y.orden) || 0); });
       } catch (error) {
         console.warn("No se pudieron cargar las cabañas:", error);
       }
-      NOMBRES_CABANAS = CABANAS.map(function (c) { return c.nombre; });
-      CABANAS.forEach(function (c) {
+      const fuente = cabanasParaFormularios();
+      NOMBRES_CABANAS = fuente.map(function (c) { return c.nombre; });
+      fuente.forEach(function (c) {
         TARIFAS[c.nombre] = { base: Number(c.base), incluidas: Number(c.incluidas), extra: Number(c.extra), max: Number(c.max) };
         MAX_PERSONAS[c.nombre] = TARIFAS[c.nombre].max;
       });
@@ -1873,15 +1885,16 @@
     }
 
     function llenarSelectsCabanas() {
-      const activas = CABANAS.filter(function (c) { return c.activa !== false; });
+      const todas = cabanasParaFormularios();
+      const activas = todas.filter(function (c) { return c.activa !== false; });
       const opciones = function (lista) {
         return lista.map(function (c) {
           return '<option value="' + esc(c.nombre) + '">' + esc(c.nombre) + "</option>";
         }).join("");
       };
       document.getElementById("f-cabana").innerHTML = '<option value="">Seleccione</option>' + opciones(activas);
-      document.getElementById("filtro-cabana").innerHTML = '<option value="todas">Todas las cabañas</option>' + opciones(CABANAS);
-      document.getElementById("te-cabana").innerHTML = opciones(CABANAS) +
+      document.getElementById("filtro-cabana").innerHTML = '<option value="todas">Todas las cabañas</option>' + opciones(todas);
+      document.getElementById("te-cabana").innerHTML = opciones(todas) +
         '<option value="Todas las cabañas">Todas las cabañas</option>';
       const cal = document.getElementById("cal-cabana");
       const anterior = calCabana;
