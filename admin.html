@@ -1319,15 +1319,57 @@
         "Personas: " + d.personas + "\n";
     }
 
+    // Formato de montos como en el mensaje: ₡45.000
+    function montoTexto(n) {
+      return "₡" + String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    // Fecha larga: "Viernes 23 de octubre de 2026"
+    function fechaLarga(texto) {
+      const f = fechaDesdeTexto(texto).toLocaleDateString("es-CR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).replace(",", "");
+      return f.charAt(0).toUpperCase() + f.slice(1);
+    }
+
     function textoConfirmacion(d) {
-      let texto = "Hola " + d.nombre + ".\n\nSu reserva en Refugio NELARY está confirmada.\n\n" + resumenEstadia(d);
-      if (Number(d.precioTotal) > 0) {
-        const adelanto = Math.round(Number(d.precioTotal) * 0.5);
-        texto += "\nTotal: " + fmtColones(d.precioTotal) +
-          "\nAdelanto (50 %): " + fmtColones(adelanto) + "\n";
-      }
-      texto += "\nDatos para el pago:\n" + DATOS_PAGO + "\n";
-      return texto + "\nGracias por elegirnos.\nRefugio NELARY";
+      const previo = solicitudes.find(function (x) { return x.id === d.id; });
+      const cedulas = (d.cedulas || (previo && previo.cedulas) || []).filter(function (c) { return c && c.publicId; });
+      const personas = Number(d.personas || 0);
+      const total = Math.round(Number(d.precioTotal || 0));
+      const original = Math.round(Number(d.tarifaOriginal || total));
+      const descuento = Math.round(Number(d.descuento || 0));
+      const deposito = Math.round(total * 0.5);
+      const saldo = total - deposito;
+      const nombre = String(d.nombre || "").split(" ")[0];
+
+      const creada = previo && previo.creadoEn && typeof previo.creadoEn.toDate === "function"
+        ? previo.creadoEn.toDate()
+        : new Date();
+      return "🌿 Confirmación de Reserva – Refugio Nelary\n\n" +
+        "🗓️ Fecha de la reserva: " + fechaLarga(textoDesdeFecha(creada)) + "\n\n" +
+        "¡" + nombre + " muchas gracias por su pago! Hemos recibido correctamente el depósito correspondiente a su reserva por un monto de " + montoTexto(deposito) + "\n\n" +
+        "Por favor, verifique que la siguiente información sea correcta:\n\n" +
+        "📅 Fecha de ingreso: " + fechaLarga(d.entrada) + " – 2:00 p. m.\n" +
+        "📅 Fecha de salida: " + fechaLarga(d.salida) + " – 11:00 a. m.\n\n" +
+        "👥 Cantidad de personas: " + personas + "\n\n" +
+        "🌹 Decoración – No solicita\n" +
+        "🫧🧴 Sales y burbujas para la tina: No solicita.\n" +
+        "📷 Fotografías de las cédulas de las personas que se hospedan: " + (personas > 0 && cedulas.length >= personas ? "Recibidas" : "Pendientes") + "\n\n" +
+        "💰 Resumen de pago:\n" +
+        "• Hospedaje: " + montoTexto(original) + "\n" +
+        (descuento ? "• Descuento" + (d.promocion ? " (" + d.promocion + ")" : "") + ": -" + montoTexto(descuento) + "\n" : "") +
+        "\nDepósito recibido (50%): " + montoTexto(deposito) + "\n" +
+        "Saldo pendiente: " + montoTexto(saldo) + "\n\n" +
+        "Le recordamos que el monto restante deberá estar cancelado 48 horas antes de su ingreso al hospedaje.\n\n" +
+        "📌 Política de cancelación:\n\n" +
+        "• Las cancelaciones realizadas con 7 días o más de anticipación recibirán un reembolso del 100% del monto pagado.\n\n" +
+        "• Las cancelaciones realizadas entre 3 y 6 días antes de la fecha de ingreso recibirán un reembolso del 50% del monto total de la reserva.\n\n" +
+        "• Las cancelaciones realizadas con menos de 72 horas de anticipación, o el mismo día de la reserva, no tendrán derecho a reembolso.\n\n" +
+        "• En caso de no presentarse el día de la reserva (No Show), no se realizará devolución alguna.\n\n" +
+        "• Los cambios de fecha estarán sujetos a disponibilidad y deberán solicitarse con al menos 72 horas de anticipación.\n\n" +
+        "• En caso de condiciones climáticas extremas, emergencias nacionales o situaciones de fuerza mayor que impidan el acceso seguro al hospedaje, la reserva podrá reprogramarse para una fecha futura, sujeta a disponibilidad.\n\n" +
+        "Si toda la información es correcta, procederemos a confirmar formalmente su reserva.\n\n" +
+        "Cualquier consulta, con mucho gusto estamos para servirle.\n\n" +
+        "✨ ¡Será un placer recibirles en Refugio Nelary!";
     }
 
     function textoCambio(d) {
@@ -3838,7 +3880,7 @@
       // Correos al huésped
       if (datos.correo && datos.estado === "confirmada") {
         if (accion === "Confirmada" || accion === "Creada") {
-          await enviarCorreo(datos.correo, "Reserva confirmada · Refugio NELARY", textoConfirmacion(datos));
+          await enviarCorreo(datos.correo, "Reserva confirmada · " + fechaLarga(datos.entrada) + " · Refugio NELARY", textoConfirmacion(datos));
         } else if (accion === "Editada") {
           await enviarCorreo(datos.correo, "Cambio en su reserva · Refugio NELARY", textoCambio(datos));
         }
