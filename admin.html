@@ -740,7 +740,8 @@
           <input type="number" id="cab-base" min="0" step="500" required>
           <label for="cab-extra">Cargo por cada persona extra (₡)</label>
           <input type="number" id="cab-extra" min="0" step="500" required>
-          <label class="check"><input type="checkbox" id="cab-activa" checked> Visible en el sitio y disponible para reservas</label>
+          <label class="check"><input type="checkbox" id="cab-activa" checked> Visible en el sitio</label>
+          <label class="check"><input type="checkbox" id="cab-reservas" checked> Aceptar reservas nuevas</label>
           <p class="error-texto" id="cab-mensaje"></p>
           <button type="submit" class="btn">Guardar cabaña</button>
           <button type="button" class="btn sec" id="cab-cancelar">Cerrar</button>
@@ -1887,7 +1888,7 @@
 
     function llenarSelectsCabanas() {
       const todas = cabanasParaFormularios();
-      const activas = todas.filter(function (c) { return c.activa !== false; });
+      const activas = todas.filter(function (c) { return c.activa !== false && c.reservasAbiertas !== false; });
       const opciones = function (lista) {
         return lista.map(function (c) {
           return '<option value="' + esc(c.nombre) + '">' + esc(c.nombre) + "</option>";
@@ -1924,8 +1925,11 @@
         return '<article class="tarjeta">' +
           '<span class="cab">' + (activa ? "Activa" : "Inactiva") + "</span>" +
           "<p><strong>" + esc(c.nombre) + "</strong><br>" + esc(c.descripcion || "Sin descripción todavía") + "</p>" +
-          '<p class="ayuda">Máximo ' + esc(c.max) + " personas · base " + fmtColones(c.base) + " por noche</p>" +
+          '<p class="ayuda">Máximo ' + esc(c.max) + " personas · base " + fmtColones(c.base) + " por noche" +
+          (c.reservasAbiertas === false ? " · <strong>Reservas pausadas</strong>" : "") + "</p>" +
           "<div>" +
+          (activa ? '<button type="button" class="btn btn-mini" data-cab-accion="' + (c.reservasAbiertas === false ? "reservas-abrir" : "reservas-pausar") + '" data-id="' + esc(c.id) + '">' +
+            (c.reservasAbiertas === false ? "Abrir reservas" : "Pausar reservas") + "</button>" : "") +
           '<button type="button" class="btn btn-mini" data-cab-accion="subir" data-id="' + esc(c.id) + '"' + (indice === 0 ? " disabled" : "") + ">↑ Subir</button>" +
           '<button type="button" class="btn btn-mini" data-cab-accion="bajar" data-id="' + esc(c.id) + '"' + (indice === CABANAS.length - 1 ? " disabled" : "") + ">↓ Bajar</button>" +
           '<button type="button" class="btn btn-mini" data-cab-accion="editar" data-id="' + esc(c.id) + '">Editar</button>' +
@@ -1951,6 +1955,7 @@
       document.getElementById("cab-base").value = c ? c.base : 45000;
       document.getElementById("cab-extra").value = c ? c.extra : 5000;
       document.getElementById("cab-activa").checked = c ? c.activa !== false : true;
+      document.getElementById("cab-reservas").checked = c ? c.reservasAbiertas !== false : true;
       document.getElementById("cab-mensaje").textContent = "";
       document.getElementById("cab-mensaje").classList.remove("error-texto");
       document.getElementById("cab-fotos-bloque").hidden = !c;
@@ -1981,7 +1986,8 @@
         incluidas: Number(document.getElementById("cab-incluidas").value),
         base: Number(document.getElementById("cab-base").value),
         extra: Number(document.getElementById("cab-extra").value),
-        activa: document.getElementById("cab-activa").checked
+        activa: document.getElementById("cab-activa").checked,
+        reservasAbiertas: document.getElementById("cab-reservas").checked
       };
       const error = function (texto) {
         mensaje.textContent = texto;
@@ -2054,6 +2060,22 @@
       } catch (error) {
         console.error(error);
         alert("No se pudo cambiar el estado. Intente de nuevo.");
+      }
+    }
+
+    async function cambiarReservasCabana(id, abiertas) {
+      const c = CABANAS.find(function (x) { return x.id === id; });
+      if (!c) return;
+      const pregunta = abiertas
+        ? "¿Abrir las reservas de " + c.nombre + "? Podrá volver a recibir reservas nuevas."
+        : "¿Pausar las reservas de " + c.nombre + "? La cabaña seguirá visible en el sitio, pero no se podrán hacer reservas nuevas. Las reservas existentes no cambian.";
+      if (!confirm(pregunta)) return;
+      try {
+        await updateDoc(doc(db, "cabanas", id), { reservasAbiertas: abiertas });
+        await cargarCabanas();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo cambiar las reservas. Intente de nuevo.");
       }
     }
 
@@ -2362,6 +2384,8 @@
       if (!boton) return;
       const id = boton.dataset.id;
       const accion = boton.dataset.cabAccion;
+      if (accion === "reservas-pausar") cambiarReservasCabana(id, false);
+      if (accion === "reservas-abrir") cambiarReservasCabana(id, true);
       if (accion === "subir") moverCabana(id, -1);
       if (accion === "bajar") moverCabana(id, 1);
       if (accion === "editar") abrirEditorCabana(id);
