@@ -1919,13 +1919,15 @@
     function cargarListaCabanas() {
       document.getElementById("cabanas-migracion").hidden = CABANAS.length > 0;
       document.getElementById("btn-nueva-cabana").disabled = CABANAS.length >= MAX_CABANAS;
-      document.getElementById("cabanas-lista").innerHTML = CABANAS.map(function (c) {
+      document.getElementById("cabanas-lista").innerHTML = CABANAS.map(function (c, indice) {
         const activa = c.activa !== false;
         return '<article class="tarjeta">' +
           '<span class="cab">' + (activa ? "Activa" : "Inactiva") + "</span>" +
           "<p><strong>" + esc(c.nombre) + "</strong><br>" + esc(c.descripcion || "Sin descripción todavía") + "</p>" +
           '<p class="ayuda">Máximo ' + esc(c.max) + " personas · base " + fmtColones(c.base) + " por noche</p>" +
           "<div>" +
+          '<button type="button" class="btn btn-mini" data-cab-accion="subir" data-id="' + esc(c.id) + '"' + (indice === 0 ? " disabled" : "") + ">↑ Subir</button>" +
+          '<button type="button" class="btn btn-mini" data-cab-accion="bajar" data-id="' + esc(c.id) + '"' + (indice === CABANAS.length - 1 ? " disabled" : "") + ">↓ Bajar</button>" +
           '<button type="button" class="btn btn-mini" data-cab-accion="editar" data-id="' + esc(c.id) + '">Editar</button>' +
           '<button type="button" class="btn btn-mini" data-cab-accion="' + (activa ? "desactivar" : "activar") + '" data-id="' + esc(c.id) + '">' +
           (activa ? "Desactivar" : "Activar") + "</button>" +
@@ -2052,6 +2054,29 @@
       } catch (error) {
         console.error(error);
         alert("No se pudo cambiar el estado. Intente de nuevo.");
+      }
+    }
+
+    async function moverCabana(id, direccion) {
+      const ordenadas = CABANAS.slice().sort(function (a, b) { return (Number(a.orden) || 0) - (Number(b.orden) || 0); });
+      const origen = ordenadas.findIndex(function (x) { return x.id === id; });
+      const destino = origen + direccion;
+      if (origen < 0 || destino < 0 || destino >= ordenadas.length) return;
+
+      const intercambio = ordenadas[origen];
+      ordenadas[origen] = ordenadas[destino];
+      ordenadas[destino] = intercambio;
+
+      try {
+        const lote = writeBatch(db);
+        ordenadas.forEach(function (c, k) {
+          lote.update(doc(db, "cabanas", c.id), { orden: k });
+        });
+        await lote.commit();
+        await cargarCabanas();
+      } catch (error) {
+        console.error(error);
+        alert("No se pudo cambiar el orden. Intente de nuevo.");
       }
     }
 
@@ -2337,6 +2362,8 @@
       if (!boton) return;
       const id = boton.dataset.id;
       const accion = boton.dataset.cabAccion;
+      if (accion === "subir") moverCabana(id, -1);
+      if (accion === "bajar") moverCabana(id, 1);
       if (accion === "editar") abrirEditorCabana(id);
       if (accion === "activar") cambiarActivaCabana(id, true);
       if (accion === "desactivar") cambiarActivaCabana(id, false);
