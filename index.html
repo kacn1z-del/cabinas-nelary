@@ -1838,10 +1838,18 @@
         tarifa.appendChild(crearEl("span", "", t("tarifa")));
         tarifa.appendChild(crearEl("strong", "", c.base ? (idioma === "en" ? "from " + fmtColones(c.base) + " / night" : "desde " + fmtColones(c.base) + " por noche") : t("aConsultar")));
         pie.appendChild(tarifa);
-        const reservar = crearEl("a", "btn btn-linea", t("btnReservarCabana"));
-        reservar.href = "#reservar";
-        reservar.dataset.reservarCabana = c.nombre;
-        pie.appendChild(reservar);
+        if (c.reservasAbiertas === false) {
+          const cerrado = crearEl("span", "btn btn-linea", idioma === "en" ? "Bookings closed for now" : "Reservas cerradas por ahora");
+          cerrado.style.opacity = "0.55";
+          cerrado.style.pointerEvents = "none";
+          cerrado.style.cursor = "default";
+          pie.appendChild(cerrado);
+        } else {
+          const reservar = crearEl("a", "btn btn-linea", t("btnReservarCabana"));
+          reservar.href = "#reservar";
+          reservar.dataset.reservarCabana = c.nombre;
+          pie.appendChild(reservar);
+        }
         texto.appendChild(pie);
 
         tarjeta.appendChild(texto);
@@ -1865,7 +1873,7 @@
       const vacia = crearEl("option", "", t("optElige"));
       vacia.value = "";
       cabanaSelect.appendChild(vacia);
-      CABANAS_DATOS.forEach(function (c) {
+      CABANAS_DATOS.filter(function (c) { return c.reservasAbiertas !== false; }).forEach(function (c) {
         const texto = c.nombre + (idioma === "en" ? " · up to " + c.max + " guests" : " · hasta " + c.max + " personas");
         const opcion = crearEl("option", "", texto);
         opcion.value = c.nombre;
